@@ -53,9 +53,6 @@ export class GUI implements IGUI {
   public hoverX: number = 0;
   public hoverY: number = 0;
 
-  public highlightedBoneIndex: number = -1;
-
-
   /**
    *
    * @param canvas required to get the width and height of the canvas
@@ -225,7 +222,6 @@ export class GUI implements IGUI {
     const ndy: number = (1 - mouse.screenY/this.height) * 2 - 1;
     const mouseWorld: Vec4 = new Vec4([ndx, ndy, -1, 1]).multiplyMat4(this.projMatrix().inverse()).multiplyMat4(this.viewMatrix().inverse());
     mouseWorld.scale(1.0/mouseWorld.w)
-    console.log("mouse!!! " + mouseWorld.xyzw.toLocaleString());
 
     // ray-cylinder intersection
     const p: Vec3 = this.camera.pos();
@@ -233,15 +229,11 @@ export class GUI implements IGUI {
 
     var intersection: [number, number] = [Infinity, Infinity];
     this.animation.getScene().meshes[0].bones.forEach((bone, index) => {
-      console.log("p " + p.xyz.toLocaleString() + " v " + v.xyz.toLocaleString())
       const pa: Vec3 = bone.position;
       const va: Vec3 = Vec3.direction(bone.endpoint, bone.position);
 
       const p1: Vec3 = bone.position;
       const p2: Vec3 = bone.endpoint;
-
-      console.log("bone position " + p1.xyz.toLocaleString() + " endpoint " + p2.xyz.toLocaleString() + " axis " + va.xyz.toLocaleString())
-
 
       const dp: Vec3 = Vec3.difference(p, pa);
 
@@ -250,53 +242,40 @@ export class GUI implements IGUI {
       var temp: Vec3 = new Vec3();
 
       const a: number = Vec3.difference(v, va.scale(Vec3.dot(v, va), temp)).squaredLength();
-      // console.log(va.xyz.toLocaleString());
       const check: Vec3 = Vec3.difference(v, va.scale(Vec3.dot(v, va), temp));
       const check2: Vec3 = Vec3.difference(dp, va.scale(Vec3.dot(dp, va), temp));
       const b: number = 2.0 * Vec3.dot(check, check2);
       const c: number = Vec3.difference(dp, va.scale(Vec3.dot(dp, va), temp)).squaredLength() - r * r;
-      // console.log("check " + check.xyz.toLocaleString() + " check2 " + check2.xyz.toLocaleString());
-      // console.log("a " + a + " b " + b + " c " + c);
 
       var discriminant: number = b * b - 4.0 * a * c;
 
-      // console.log(discriminant);
       if (a == 0.0 || discriminant < 0.0) {
         return;
       }
 
       discriminant = Math.sqrt(discriminant);
-      // console.log(discriminant);
       const t2 = (-b + discriminant) / (2.0 * a);
       if(t2 <= 0.0) {
-        // console.log(t2);
         return;
       }
 
       const t1 = (-b - discriminant) / (2.0 * a);
       if(t1 > 0.0) {
         const q1: Vec3 = Vec3.sum(p, v.scale(t1, temp));
-        // console.log("t1 " + t1 + " q1 " + q1.xyz.toLocaleString());
-        console.log(Vec3.cross(Vec3.difference(q1, p1), Vec3.difference(q1, p2)).squaredLength() + ", r^2 " + r * r);
         if(t1 < intersection[0] && Vec3.dot(Vec3.difference(q1, p1), Vec3.difference(p2, p1)) >= 0 && Vec3.dot(Vec3.difference(q1, p1), Vec3.difference(p2, p1)) <= Vec3.dot(Vec3.difference(p2, p1), Vec3.difference(p2, p1))) {
           intersection = [t1, index];
-          console.log("t1 intersection!!!!");
           return;
         }
       }
 
       const q2: Vec3 = Vec3.sum(p, v.scale(t2, temp));
-      // console.log("t2 " + t2 + " q2 " + q2.xyz.toLocaleString());
-      // console.log(Vec3.cross(Vec3.difference(q2, p1), Vec3.difference(q2, p2)).squaredLength() + ", r^2 " + r * r);
-      
       if(t2 < intersection[0] && Vec3.dot(Vec3.difference(q2, p1), Vec3.difference(p2, p1)) >= 0 && Vec3.dot(Vec3.difference(q2, p1), Vec3.difference(p2, p1)) <= Vec3.dot(Vec3.difference(p2, p1), Vec3.difference(p2, p1))) {
         intersection = [t2, index];
-        console.log("t2 intersection!!!!");
         return;
       }
       
     });
-    this.highlightedBoneIndex = intersection[1];
+    this.animation.getScene().meshes[0].setBoneHighlightIndex(intersection[1]);
   }
 
   public getModeString(): string {

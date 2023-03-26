@@ -74,7 +74,7 @@ export class Mesh {
   private boneIndices: number[];
   private bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
-  private boneHighlights: Float32Array;
+  private boneHighlightIndex: number;
 
   constructor(mesh: MeshLoader) {
     this.geometry = new MeshGeometry(mesh.geometry);
@@ -89,7 +89,7 @@ export class Mesh {
     this.boneIndices = Array.from(mesh.boneIndices);
     this.bonePositions = new Float32Array(mesh.bonePositions);
     this.boneIndexAttribute = new Float32Array(mesh.boneIndexAttribute);
-    this.boneHighlights = new Float32Array(this.bones.length);
+    this.boneHighlightIndex = -1;
   }
 
   public getBoneIndices(): Uint32Array {
@@ -104,8 +104,12 @@ export class Mesh {
     return this.boneIndexAttribute;
   }
 
-  public getBoneHighlights(): Float32Array{
-    return this.boneHighlights;
+  public getBoneHighlightIndex(): number{
+    return this.boneHighlightIndex;
+  }
+
+  public setBoneHighlightIndex(index: number): void {
+    this.boneHighlightIndex = index;
   }
 
   public getBoneTranslations(): Float32Array {

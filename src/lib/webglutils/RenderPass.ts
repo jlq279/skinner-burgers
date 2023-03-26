@@ -74,7 +74,6 @@ export class RenderPass {
 
     /* Setup Attributes */
     this.attributes.forEach((attr) => {
-      console.log("attribute " + attr.name);
       let attrLoc = gl.getAttribLocation(this.shaderProgram, attr.name);
       let attrBuffer = this.attributeBuffers.get(attr.bufferName);
       if (attrBuffer) {

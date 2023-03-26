@@ -193,15 +193,18 @@ export class SkinningAnimation extends CanvasAnimation {
    * Sets up the skeleton drawing
    */
   public initSkeleton(): void {
-    
     this.skeletonRenderPass.setIndexBufferData(this.scene.meshes[0].getBoneIndices());
 
     this.skeletonRenderPass.addAttribute("vertPosition", 3, this.ctx.FLOAT, false,
       3 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBonePositions());
     this.skeletonRenderPass.addAttribute("boneIndex", 1, this.ctx.FLOAT, false,
       1 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBoneIndexAttribute());
-    this.skeletonRenderPass.addAttribute("boneHighlight", 1, this.ctx.FLOAT, false,
-      1 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBoneHighlights());
+
+    this.skeletonRenderPass.addUniform("boneHighlightIndex",
+      (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+        gl.uniform1f(loc, this.getScene().meshes[0].getBoneHighlightIndex());
+    });
+
     this.skeletonRenderPass.addUniform("mWorld",
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniformMatrix4fv(loc, false, new Float32Array(Mat4.identity.all()));
@@ -288,7 +291,12 @@ export class SkinningAnimation extends CanvasAnimation {
 
     // TODO
     // If the mesh is animating, probably you want to do some updating of the skeleton state here
-    
+
+    // this.skeletonRenderPass.addUniform("boneHighlightIndex",
+    //   (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+    //     gl.uniform1f(loc, this.getScene().meshes[0].getBoneHighlightIndex());
+    // });
+
     // draw the status message
     if (this.ctx2) {
       this.ctx2.clearRect(0, 0, this.ctx2.canvas.width, this.ctx2.canvas.height);
