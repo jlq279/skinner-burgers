@@ -314,7 +314,7 @@ export class GUI implements IGUI {
         else  {
           var disc: number = Math.pow(Vec3.dot(v, Vec3.difference(p, j)), 2) - (Vec3.squaredDistance(p, j) - Math.pow(this.curDist, 2));
           if(disc >= 0) {
-            t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
+            t = -1 * Vec3.dot(v, Vec3.difference(p , j)) - Math.sqrt(disc);
             console.log("t " + t);
 
 

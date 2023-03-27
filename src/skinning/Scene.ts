@@ -46,7 +46,10 @@ export class Bone {
   
   public initialPosition: Vec3; // position of the bone's joint *in world coordinates*
   public initialEndpoint: Vec3; // position of the bone's second (non-joint) endpoint, in world coordinates
-  public cumOffset: Vec3 = new Vec3();
+  public U: Mat4 = Mat4.identity;
+  public B: Mat4 = Mat4.identity;
+  public D: Mat4 = Mat4.identity;
+  public T: Mat4 = Mat4.identity;
 
 
   public offset: number; // used when parsing the Collada file---you probably don't need to touch these
@@ -62,7 +65,6 @@ export class Bone {
     this.initialPosition = bone.initialPosition.copy();
     this.initialEndpoint = bone.initialEndpoint.copy();
     this.initialTransformation = bone.initialTransformation.copy();
-
 
   }
 
@@ -92,11 +94,33 @@ export class Mesh {
       this.bones.push(new Bone(bone));
     });
     this.bones.forEach(bone=>{ 
-      if(bone.parent != -1)
+      if(bone.parent == -1)
       {
-        var temp3: Vec3 = new Vec3();
-        bone.cumOffset = this.bones[bone.parent].cumOffset.add(bone.initialPosition, temp3);
+        bone.B = new Mat4([1, 0 , 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, bone.initialPosition.x, bone.initialPosition.y, bone.initialPosition.z, 1]);
       }
+      else 
+      {
+        var x: number = bone.initialPosition.x - this.bones[bone.parent].initialPosition.x;
+        var y: number = bone.initialPosition.y - this.bones[bone.parent].initialPosition.y;
+        var z: number = bone.initialPosition.z - this.bones[bone.parent].initialPosition.z;
+
+        bone.B = new Mat4([1, 0 , 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
+      }
+      bone.T = Mat4.identity;
+    })
+
+    this.bones.forEach(bone => {
+      bone.U = bone.B;
+      bone.D = bone.B;
+      var parentB: Bone = bone;
+      while(parentB.parent != -1)
+      {
+        parentB = this.bones[bone.parent];
+        bone.U.multiply(parentB.B);
+        bone.D.multiply(parentB.T);
+        bone.D.multiply(parentB.B);
+      }
+      
     })
 
     this.materialName = mesh.materialName;
@@ -151,26 +175,37 @@ export class Mesh {
 
   public update(i: number) {
     var parentID : number = this.bones[i].parent;
-    var jointLoc : Vec3 = this.bones[i].position;
+    var parentB2 : Bone = this.bones[i];
+    var jointLoc : Vec3 = this.bones[i].initialPosition;
     var Temp4 : Vec3 = new Vec3();
     if(parentID != -1)
     {
-      jointLoc = jointLoc.subtract(this.bones[parentID].cumOffset, Temp4);
-      this.bones[i].position = this.Trans(jointLoc, parentID); 
+      parentB2 = this.bones[parentID];
+      jointLoc = parentB2.U.inverse().multiplyVec3(jointLoc);
+      this.Trans(parentID);
+      this.bones[i].position = this.bones[parentID].D.multiplyVec3(jointLoc); 
     }
 
     var endLoc : Vec3 = this.bones[i].endpoint;
-    endLoc = endLoc.subtract(this.bones[i].cumOffset, Temp4)
-    this.bones[i].endpoint = this.Trans(endLoc, parentID);
+    endLoc = this.bones[i].U.inverse().multiplyVec3(jointLoc);
+    this.Trans(i);
+    this.bones[i].endpoint = this.bones[i].D.multiplyVec3(endLoc);
+
+    this.bones[i].children.forEach(child => {
+      this.update(child);
+    })
 
   }
 
-  public Trans(pos: Vec3, id: number): Vec3 {
-    // if(id == -1) return pos;
-    // else {
-    //   return this.Trans(this.bones[id].rotation.multiplyVec3(pos).add(this.bones[id].), this.bones[id].parent);
-    // }
-    return new Vec3();
+  public Trans(id: number) {
+    if(id == -1) return;
+    else {
+      this.bones[id].T = this.bones[id].rotation.toMat4();
+      this.bones[id].D = this.bones[id].B;
+      this.bones[id].D.multiply(this.bones[id].T);
+      if(this.bones[id].parent != -1)
+        this.bones[id].D.multiply(this.bones[this.bones[id].parent].D);
+    }
   }
 
 }
