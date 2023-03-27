@@ -317,22 +317,32 @@ export class GUI implements IGUI {
           {
             t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
             console.log("t " + t);
-            var newend: Vec3 = p.add(v.scale(t, temp2), temp2);
-            axis = Vec3.cross(curend.subtract(j), newend.subtract(j)).normalize();
-            angle = Math.acos(Vec3.dot(newend.normalize(), curend.normalize()));
+
+
+            var newend: Vec3 = Vec3.sum(p, v.scale(t, temp2));
+            var newendloc: Vec3 = Vec3.difference(newend, j);
+            var curendloc: Vec3 = Vec3.difference(curend, j);
+            axis = Vec3.cross(curendloc, newendloc);
+            angle = Math.acos(Math.min(Vec3.dot(newendloc.normalize(), curendloc.normalize()), 1));
             
+            axis.normalize();
+
             console.log("v " + v.xyz.toLocaleString());
             console.log("")
             console.log("angle " + angle);
-            console.log("prev loc " + curend.xyz.toLocaleString());
-            console.log("new location " + newend.xyz.toLocaleString());   
+            console.log("prev loc " + curendloc.xyz.toLocaleString());
+            console.log("new loc " + newendloc.xyz.toLocaleString());   
             console.log("axis " + axis.xyz.toLocaleString());
             console.log("cur dist " + this.curDist);
-
+            
+            var temp5: Quat = new Quat();
             var nq: Quat = Quat.fromAxisAngle(axis, angle);
-            var cq: Quat = nq.multiply(this.animation.getScene().meshes[0].bones[intersection[1]].rotation);
+            var cq: Quat = nq.multiply(this.animation.getScene().meshes[0].bones[intersection[1]].rotation, temp5);
+            console.log("new quat " + nq.xyzw.toLocaleString());
+            console.log("cumulative quat " + cq.xyzw.toLocaleString());
             this.animation.getScene().meshes[0].bones[intersection[1]].rotation = cq;
-            this.animation.getScene().meshes[0].bones[intersection[1]].endpoint = nq.multiplyVec3(curend).add(j);
+            this.animation.getScene().meshes[0].bones[intersection[1]].endpoint = nq.multiplyVec3(curendloc).add(j);
+            console.log("What the algo says: " + nq.multiplyVec3(curend).add(j).xyz.toLocaleString());
           }
         }  
         
