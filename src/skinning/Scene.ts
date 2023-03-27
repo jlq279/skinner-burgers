@@ -186,8 +186,8 @@ export class Mesh {
       this.bones[i].position = this.bones[parentID].D.multiplyVec3(jointLoc); 
     }
 
-    var endLoc : Vec3 = this.bones[i].endpoint;
-    endLoc = this.bones[i].U.inverse().multiplyVec3(jointLoc);
+    var endLoc : Vec3 = this.bones[i].initialEndpoint;
+    endLoc = this.bones[i].U.inverse().multiplyVec3(endLoc);
     this.Trans(i);
     this.bones[i].endpoint = this.bones[i].D.multiplyVec3(endLoc);
 
@@ -200,12 +200,21 @@ export class Mesh {
   public Trans(id: number) {
     if(id == -1) return;
     else {
+      var temp8: Mat4 = new Mat4();
       this.bones[id].T = this.bones[id].rotation.toMat4();
-      this.bones[id].D = this.bones[id].B;
-      this.bones[id].D.multiply(this.bones[id].T);
       if(this.bones[id].parent != -1)
-        this.bones[id].D.multiply(this.bones[this.bones[id].parent].D);
+      {
+        this.bones[id].D = this.bones[id].D.multiply(this.bones[this.bones[id].parent].D, temp8);
+        this.bones[id].D = this.bones[id].D.multiply(this.bones[id].B, temp8);
+        this.bones[id].D = this.bones[id].T;
+      }
+      else 
+      {
+        this.bones[id].D = this.bones[id].B.multiply(this.bones[id].T, temp8);
+      }
+        
     }
+
   }
 
 }
