@@ -104,7 +104,7 @@ export class Mesh {
     this.boneIndices = Array.from(mesh.boneIndices);
     this.bonePositions = new Float32Array(mesh.bonePositions);
     this.boneIndexAttribute = new Float32Array(mesh.boneIndexAttribute);
-    this.boneHighlightIndex = -1;
+    this.boneHighlightIndex = Infinity;
   }
 
   public getBoneIndices(): Uint32Array {

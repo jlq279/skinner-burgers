@@ -292,11 +292,6 @@ export class SkinningAnimation extends CanvasAnimation {
     // TODO
     // If the mesh is animating, probably you want to do some updating of the skeleton state here
 
-    // this.skeletonRenderPass.addUniform("boneHighlightIndex",
-    //   (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
-    //     gl.uniform1f(loc, this.getScene().meshes[0].getBoneHighlightIndex());
-    // });
-
     // draw the status message
     if (this.ctx2) {
       this.ctx2.clearRect(0, 0, this.ctx2.canvas.width, this.ctx2.canvas.height);

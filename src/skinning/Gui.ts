@@ -54,8 +54,10 @@ export class GUI implements IGUI {
   public hoverX: number = 0;
   public hoverY: number = 0;
 
-  public first: boolean = true;
-  public cont: boolean = false;
+  public startBoneDrag: boolean = false;
+  public draggingBone: boolean = false;
+  public highlightedBone: number = Infinity;
+  // public cont: boolean = false;
   public curDist: number = 0;
   public poCylin: Vec3 = new Vec3();
 
@@ -153,9 +155,11 @@ export class GUI implements IGUI {
     
     // TODO
     // Some logic to rotate the bones, instead of moving the camera, if there is a currently highlighted bone
-    
     this.dragging = true;
-    this.first = true;
+    if (this.highlightedBone != Infinity) {
+      this.startBoneDrag = true;
+      this.draggingBone = true;
+    }
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
     
@@ -242,9 +246,8 @@ export class GUI implements IGUI {
       
     });
     this.animation.getScene().meshes[0].setBoneHighlightIndex(intersection[1]);
-    
-    if (this.dragging && intersection[1] == Infinity && this.first && this.cont) {
-      this.first = true;
+    this.highlightedBone = intersection[1];
+    if (this.dragging && !this.draggingBone) { // no highlighted bone; do normal rotations
       const dx = mouse.screenX - this.prevX;
       const dy = mouse.screenY - this.prevY;
       this.prevX = mouse.screenX;
@@ -282,13 +285,12 @@ export class GUI implements IGUI {
         }
       }
     } 
-    else if(intersection[1] != Infinity)
-    {
+    else if(this.draggingBone) { // dragging highlighted bone
       var qnew = new Quat();
       // console.log("bone" + intersection[1]);
       if(mouse.buttons == 1)
       {
-        this.cont = true;
+        // this.cont = true;
         var j: Vec3 = this.animation.getScene().meshes[0].bones[intersection[1]].position;
         var curend: Vec3 = this.animation.getScene().meshes[0].bones[intersection[1]].endpoint;
         var t: number = Infinity;
@@ -296,10 +298,9 @@ export class GUI implements IGUI {
         var axis: Vec3 = new Vec3();
         var angle: number = 0;
         
-        console.log("first" + this.first);
-        if(this.first)
-        {
-          this.first = false;
+        console.log("start bone drag" + this.startBoneDrag);
+        if(this.startBoneDrag) {
+          this.startBoneDrag = false;
           
           this.poCylin = Vec3.sum(p, v.scale(intersection[0], temp2)); // point on cylinder
           
@@ -310,11 +311,9 @@ export class GUI implements IGUI {
           this.curDist = Vec3.dot(this.poCylin, boneDir); // how far corresponding bone is from joint
           
         }
-        else 
-        {
+        else  {
           var disc: number = Math.pow(Vec3.dot(v, Vec3.difference(p, j)), 2) - (Vec3.squaredDistance(p, j) - Math.pow(this.curDist, 2));
-          if(disc >= 0)
-          {
+          if(disc >= 0) {
             t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
             console.log("t " + t);
 
@@ -345,14 +344,9 @@ export class GUI implements IGUI {
             console.log("What the algo says: " + nq.multiplyVec3(curend).add(j).xyz.toLocaleString());
           }
         }  
-        
-       
-      
       }
-      else 
-      {
-        this.first = true;
-        this.cont = false;
+      else { // hovering
+        // this.cont = false;
       }
 
 
@@ -384,11 +378,13 @@ export class GUI implements IGUI {
    */
   public dragEnd(mouse: MouseEvent): void {
     this.dragging = false;
+    this.draggingBone = false;
     this.prevX = 0;
     this.prevY = 0;
     
     // TODO
     // Maybe your bone highlight/dragging logic needs to do stuff here too
+    // this.first = true;
   }
 
   /**
