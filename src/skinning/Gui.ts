@@ -56,6 +56,7 @@ export class GUI implements IGUI {
 
   public startBoneDrag: boolean = false;
   public draggingBone: boolean = false;
+  public highlightedT: number = Infinity;
   public highlightedBone: number = Infinity;
   // public cont: boolean = false;
   public curDist: number = 0;
@@ -175,6 +176,54 @@ export class GUI implements IGUI {
     }
   }
 
+  private getCylinderIntersection(intersection: [number, number], rayPos: Vec3, rayDir: Vec3, bone: Bone, index: number): [number, number] {
+    const pa: Vec3 = bone.position;
+    const va: Vec3 = Vec3.direction(bone.endpoint, bone.position);
+
+    const p1: Vec3 = bone.position;
+    const p2: Vec3 = bone.endpoint;
+
+    const dp: Vec3 = Vec3.difference(rayPos, pa);
+
+    const r: number = 0.1;
+
+    var temp: Vec3 = new Vec3();
+
+    const a: number = Vec3.difference(rayDir, va.scale(Vec3.dot(rayDir, va), temp)).squaredLength();
+    const check: Vec3 = Vec3.difference(rayDir, va.scale(Vec3.dot(rayDir, va), temp));
+    const check2: Vec3 = Vec3.difference(dp, va.scale(Vec3.dot(dp, va), temp));
+    const b: number = 2.0 * Vec3.dot(check, check2);
+    const c: number = Vec3.difference(dp, va.scale(Vec3.dot(dp, va), temp)).squaredLength() - r * r;
+
+    var discriminant: number = b * b - 4.0 * a * c;
+
+    if (a == 0.0 || discriminant < 0.0) {
+      return intersection;
+    }
+
+    discriminant = Math.sqrt(discriminant);
+    const t2 = (-b + discriminant) / (2.0 * a);
+    if(t2 <= 0.0) {
+      return intersection;
+    }
+
+    const t1 = (-b - discriminant) / (2.0 * a);
+    if(t1 > 0.0) {
+      const q1: Vec3 = Vec3.sum(rayPos, rayDir.scale(t1, temp));
+      if(t1 < intersection[0] && Vec3.dot(Vec3.difference(q1, p1), Vec3.difference(p2, p1)) >= 0 && Vec3.dot(Vec3.difference(q1, p1), Vec3.difference(p2, p1)) <= Vec3.dot(Vec3.difference(p2, p1), Vec3.difference(p2, p1))) {
+        intersection = [t1, index];
+        return intersection;
+      }
+    }
+
+    const q2: Vec3 = Vec3.sum(rayPos, rayDir.scale(t2, temp));
+    if(t2 < intersection[0] && Vec3.dot(Vec3.difference(q2, p1), Vec3.difference(p2, p1)) >= 0 && Vec3.dot(Vec3.difference(q2, p1), Vec3.difference(p2, p1)) <= Vec3.dot(Vec3.difference(p2, p1), Vec3.difference(p2, p1))) {
+      intersection = [t2, index];
+    }
+
+    return intersection;
+  }
+
   /**
    * The callback function for a drag event.
    * This event happens after dragStart and
@@ -182,9 +231,12 @@ export class GUI implements IGUI {
    * @param mouse
    */
   public drag(mouse: MouseEvent): void {
+    // TODO
+    // You will want logic here:
+    // 1) To highlight a bone, if the mouse is hovering over a bone;
+    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
     let x = mouse.offsetX;
     let y = mouse.offsetY;
-    
     
     // mouse from screen to ndc to world
     const ndx: number = 2 * (x + 0.5)/this.width - 1;
@@ -196,58 +248,63 @@ export class GUI implements IGUI {
     // ray-cylinder intersection
     const p: Vec3 = this.camera.pos();
     const v: Vec3 = Vec3.direction(new Vec3(mouseWorld.xyz), p);
-
-    var intersection: [number, number] = [Infinity, Infinity];
-    this.animation.getScene().meshes[0].bones.forEach((bone, index) => {
-      const pa: Vec3 = bone.position;
-      const va: Vec3 = Vec3.direction(bone.endpoint, bone.position);
-
-      const p1: Vec3 = bone.position;
-      const p2: Vec3 = bone.endpoint;
-
-      const dp: Vec3 = Vec3.difference(p, pa);
-
-      const r: number = 0.1;
-
+    
+    if(this.draggingBone) { // dragging highlighted bone
+      var qnew = new Quat();
+      var j: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].position;
+      var curend: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint;
+      var t: number = Infinity;
       var temp: Vec3 = new Vec3();
+      var axis: Vec3 = new Vec3();
+      var angle: number = 0;
+      
+      console.log("start bone drag" + this.startBoneDrag);
+      if(this.startBoneDrag) {
+        this.startBoneDrag = false;
+        
+        this.poCylin = Vec3.sum(p, v.scale(this.highlightedT, temp)); // point on cylinder
+        
+        this.poCylin = Vec3.difference(this.poCylin, j); // local coords of point on cylinder
 
-      const a: number = Vec3.difference(v, va.scale(Vec3.dot(v, va), temp)).squaredLength();
-      const check: Vec3 = Vec3.difference(v, va.scale(Vec3.dot(v, va), temp));
-      const check2: Vec3 = Vec3.difference(dp, va.scale(Vec3.dot(dp, va), temp));
-      const b: number = 2.0 * Vec3.dot(check, check2);
-      const c: number = Vec3.difference(dp, va.scale(Vec3.dot(dp, va), temp)).squaredLength() - r * r;
+        var boneDir = Vec3.difference(curend, j).normalize();
 
-      var discriminant: number = b * b - 4.0 * a * c;
-
-      if (a == 0.0 || discriminant < 0.0) {
-        return;
+        this.curDist = Vec3.dot(this.poCylin, boneDir); // how far corresponding bone is from joint
+        
       }
+      else  {
+        var disc: number = Math.pow(Vec3.dot(v, Vec3.difference(p, j)), 2) - (Vec3.squaredDistance(p, j) - Math.pow(this.curDist, 2));
+        if(disc >= 0) {
+          t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
+          console.log("t " + t);
 
-      discriminant = Math.sqrt(discriminant);
-      const t2 = (-b + discriminant) / (2.0 * a);
-      if(t2 <= 0.0) {
-        return;
-      }
+          var newend: Vec3 = Vec3.sum(p, v.scale(t, temp));
+          var newendloc: Vec3 = Vec3.difference(newend, j);
+          var curendloc: Vec3 = Vec3.difference(curend, j);
+          axis = Vec3.cross(curendloc, newendloc);
+          angle = Math.acos(Math.min(Vec3.dot(newendloc.normalize(), curendloc.normalize()), 1));
+          
+          axis.normalize();
 
-      const t1 = (-b - discriminant) / (2.0 * a);
-      if(t1 > 0.0) {
-        const q1: Vec3 = Vec3.sum(p, v.scale(t1, temp));
-        if(t1 < intersection[0] && Vec3.dot(Vec3.difference(q1, p1), Vec3.difference(p2, p1)) >= 0 && Vec3.dot(Vec3.difference(q1, p1), Vec3.difference(p2, p1)) <= Vec3.dot(Vec3.difference(p2, p1), Vec3.difference(p2, p1))) {
-          intersection = [t1, index];
-          return;
+          console.log("v " + v.xyz.toLocaleString());
+          console.log("")
+          console.log("angle " + angle);
+          console.log("prev loc " + curendloc.xyz.toLocaleString());
+          console.log("new loc " + newendloc.xyz.toLocaleString());   
+          console.log("axis " + axis.xyz.toLocaleString());
+          console.log("cur dist " + this.curDist);
+          
+          var temp5: Quat = new Quat();
+          var nq: Quat = Quat.fromAxisAngle(axis, angle);
+          var cq: Quat = nq.multiply(this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation, temp5);
+          console.log("new quat " + nq.xyzw.toLocaleString());
+          console.log("cumulative quat " + cq.xyzw.toLocaleString());
+          this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq;
+          this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint = nq.multiplyVec3(curendloc).add(j);
+          console.log("What the algo says: " + nq.multiplyVec3(curend).add(j).xyz.toLocaleString());
         }
       }
-
-      const q2: Vec3 = Vec3.sum(p, v.scale(t2, temp));
-      if(t2 < intersection[0] && Vec3.dot(Vec3.difference(q2, p1), Vec3.difference(p2, p1)) >= 0 && Vec3.dot(Vec3.difference(q2, p1), Vec3.difference(p2, p1)) <= Vec3.dot(Vec3.difference(p2, p1), Vec3.difference(p2, p1))) {
-        intersection = [t2, index];
-        return;
-      }
-      
-    });
-    this.animation.getScene().meshes[0].setBoneHighlightIndex(intersection[1]);
-    this.highlightedBone = intersection[1];
-    if (this.dragging && !this.draggingBone) { // no highlighted bone; do normal rotations
+    }
+    else if (this.dragging) { // no highlighted bone; do normal rotations
       const dx = mouse.screenX - this.prevX;
       const dy = mouse.screenY - this.prevY;
       this.prevX = mouse.screenX;
@@ -285,85 +342,20 @@ export class GUI implements IGUI {
         }
       }
     } 
-    else if(this.draggingBone) { // dragging highlighted bone
-      var qnew = new Quat();
-      // console.log("bone" + intersection[1]);
-      if(mouse.buttons == 1)
-      {
-        // this.cont = true;
-        var j: Vec3 = this.animation.getScene().meshes[0].bones[intersection[1]].position;
-        var curend: Vec3 = this.animation.getScene().meshes[0].bones[intersection[1]].endpoint;
-        var t: number = Infinity;
-        var temp2: Vec3 = new Vec3();
-        var axis: Vec3 = new Vec3();
-        var angle: number = 0;
-        
-        console.log("start bone drag" + this.startBoneDrag);
-        if(this.startBoneDrag) {
-          this.startBoneDrag = false;
-          
-          this.poCylin = Vec3.sum(p, v.scale(intersection[0], temp2)); // point on cylinder
-          
-          this.poCylin = Vec3.difference(this.poCylin, j); // local coords of point on cylinder
-
-          var boneDir = Vec3.difference(curend, j).normalize();
-
-          this.curDist = Vec3.dot(this.poCylin, boneDir); // how far corresponding bone is from joint
-          
-        }
-        else  {
-          var disc: number = Math.pow(Vec3.dot(v, Vec3.difference(p, j)), 2) - (Vec3.squaredDistance(p, j) - Math.pow(this.curDist, 2));
-          if(disc >= 0) {
-            t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
-            console.log("t " + t);
-
-
-            var newend: Vec3 = Vec3.sum(p, v.scale(t, temp2));
-            var newendloc: Vec3 = Vec3.difference(newend, j);
-            var curendloc: Vec3 = Vec3.difference(curend, j);
-            axis = Vec3.cross(curendloc, newendloc);
-            angle = Math.acos(Math.min(Vec3.dot(newendloc.normalize(), curendloc.normalize()), 1));
-            
-            axis.normalize();
-
-            console.log("v " + v.xyz.toLocaleString());
-            console.log("")
-            console.log("angle " + angle);
-            console.log("prev loc " + curendloc.xyz.toLocaleString());
-            console.log("new loc " + newendloc.xyz.toLocaleString());   
-            console.log("axis " + axis.xyz.toLocaleString());
-            console.log("cur dist " + this.curDist);
-            
-            var temp5: Quat = new Quat();
-            var nq: Quat = Quat.fromAxisAngle(axis, angle);
-            var cq: Quat = nq.multiply(this.animation.getScene().meshes[0].bones[intersection[1]].rotation, temp5);
-            console.log("new quat " + nq.xyzw.toLocaleString());
-            console.log("cumulative quat " + cq.xyzw.toLocaleString());
-            this.animation.getScene().meshes[0].bones[intersection[1]].rotation = cq;
-            this.animation.getScene().meshes[0].bones[intersection[1]].endpoint = nq.multiplyVec3(curendloc).add(j);
-            console.log("What the algo says: " + nq.multiplyVec3(curend).add(j).xyz.toLocaleString());
-          }
-        }  
-      }
-      else { // hovering
-        // this.cont = false;
-      }
-
-
-      
-
-      
-      //TO DO write the recursive function for rotation
+    else { // hovering
+      var intersection: [number, number] = [Infinity, Infinity];
+      this.animation.getScene().meshes[0].bones.forEach((bone, index) => {
+        intersection = this.getCylinderIntersection(intersection, p, v, bone, index);
+      });
+      this.highlightedT = intersection[0];
+      this.highlightedBone = intersection[1];
+      this.animation.getScene().meshes[0].setBoneHighlightIndex(this.highlightedBone);
     }
-    
-    // TODO
-    // You will want logic here:
-    // 1) To highlight a bone, if the mouse is hovering over a bone;
-    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
 
-    
+    // TODO write the recursive function for rotation
   }
-
+    
+    
 
   public getModeString(): string {
     switch (this.mode) {
@@ -377,14 +369,12 @@ export class GUI implements IGUI {
    * @param mouse
    */
   public dragEnd(mouse: MouseEvent): void {
+    // TODO
+    // Maybe your bone highlight/dragging logic needs to do stuff here too
     this.dragging = false;
     this.draggingBone = false;
     this.prevX = 0;
     this.prevY = 0;
-    
-    // TODO
-    // Maybe your bone highlight/dragging logic needs to do stuff here too
-    // this.first = true;
   }
 
   /**
