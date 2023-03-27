@@ -218,10 +218,11 @@ export class GUI implements IGUI {
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
 
     // mouse from screen to ndc to world
-    const ndx: number = (mouse.screenX/this.width) * 2 - 1;
-    const ndy: number = (1 - mouse.screenY/this.height) * 2 - 1;
-    const mouseWorld: Vec4 = new Vec4([ndx, ndy, -1, 1]).multiplyMat4(this.projMatrix().inverse()).multiplyMat4(this.viewMatrix().inverse());
-    mouseWorld.scale(1.0/mouseWorld.w)
+    const ndx: number = 2 * (x + 0.5)/this.width - 1;
+    const ndy: number = 1 - (2 * (y + 0.5)/this.viewPortHeight);
+    const mouseWorld: Vec4 = this.viewMatrix().inverse().multiply(this.projMatrix().inverse()).multiplyVec4(new Vec4([ndx, ndy, -1, 1]));
+    mouseWorld.scale(1.0/mouseWorld.w);
+    mouseWorld.y
 
     // ray-cylinder intersection
     const p: Vec3 = this.camera.pos();
