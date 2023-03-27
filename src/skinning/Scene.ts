@@ -46,6 +46,8 @@ export class Bone {
   
   public initialPosition: Vec3; // position of the bone's joint *in world coordinates*
   public initialEndpoint: Vec3; // position of the bone's second (non-joint) endpoint, in world coordinates
+  public cumOffset: Vec3 = new Vec3();
+
 
   public offset: number; // used when parsing the Collada file---you probably don't need to touch these
   public initialTransformation: Mat4;
@@ -60,7 +62,10 @@ export class Bone {
     this.initialPosition = bone.initialPosition.copy();
     this.initialEndpoint = bone.initialEndpoint.copy();
     this.initialTransformation = bone.initialTransformation.copy();
+
+
   }
+
 }
 
 export class Mesh {
@@ -70,6 +75,8 @@ export class Mesh {
   public bones: Bone[];
   public materialName: string;
   public imgSrc: String | null;
+  public rotating: boolean = false;
+  public ogvec: Vec3 = new Vec3();
 
   private boneIndices: number[];
   private bonePositions: Float32Array;
@@ -84,6 +91,14 @@ export class Mesh {
     mesh.bones.forEach(bone => {
       this.bones.push(new Bone(bone));
     });
+    this.bones.forEach(bone=>{ 
+      if(bone.parent != -1)
+      {
+        var temp3: Vec3 = new Vec3();
+        bone.cumOffset = this.bones[bone.parent].cumOffset.add(bone.initialPosition, temp3);
+      }
+    })
+
     this.materialName = mesh.materialName;
     this.imgSrc = null;
     this.boneIndices = Array.from(mesh.boneIndices);
@@ -133,4 +148,29 @@ export class Mesh {
     });
     return trans;
   }
+
+  public update(i: number) {
+    var parentID : number = this.bones[i].parent;
+    var jointLoc : Vec3 = this.bones[i].position;
+    var Temp4 : Vec3 = new Vec3();
+    if(parentID != -1)
+    {
+      jointLoc = jointLoc.subtract(this.bones[parentID].cumOffset, Temp4);
+      this.bones[i].position = this.Trans(jointLoc, parentID); 
+    }
+
+    var endLoc : Vec3 = this.bones[i].endpoint;
+    endLoc = endLoc.subtract(this.bones[i].cumOffset, Temp4)
+    this.bones[i].endpoint = this.Trans(endLoc, parentID);
+
+  }
+
+  public Trans(pos: Vec3, id: number): Vec3 {
+    // if(id == -1) return pos;
+    // else {
+    //   return this.Trans(this.bones[id].rotation.multiplyVec3(pos).add(this.bones[id].), this.bones[id].parent);
+    // }
+    return new Vec3();
+  }
+
 }

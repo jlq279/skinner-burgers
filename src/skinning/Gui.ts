@@ -4,6 +4,7 @@ import { SkinningAnimation } from "./App.js";
 import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone, Mesh } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
+import { FrontSide } from "../lib/threejs/src/constants.js";
 
 /**
  * Might be useful for designing any animation GUI
@@ -52,6 +53,11 @@ export class GUI implements IGUI {
 
   public hoverX: number = 0;
   public hoverY: number = 0;
+
+  public first: boolean = true;
+  public cont: boolean = false;
+  public curDist: number = 0;
+  public poCylin: Vec3 = new Vec3();
 
   /**
    *
@@ -149,6 +155,7 @@ export class GUI implements IGUI {
     // Some logic to rotate the bones, instead of moving the camera, if there is a currently highlighted bone
     
     this.dragging = true;
+    this.first = true;
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
     
@@ -173,50 +180,8 @@ export class GUI implements IGUI {
   public drag(mouse: MouseEvent): void {
     let x = mouse.offsetX;
     let y = mouse.offsetY;
-    if (this.dragging) {
-      const dx = mouse.screenX - this.prevX;
-      const dy = mouse.screenY - this.prevY;
-      this.prevX = mouse.screenX;
-      this.prevY = mouse.screenY;
-
-      /* Left button, or primary button */
-      const mouseDir: Vec3 = this.camera.right();
-      mouseDir.scale(-dx);
-      mouseDir.add(this.camera.up().scale(dy));
-      mouseDir.normalize();
-
-      if (dx === 0 && dy === 0) {
-        return;
-      }
-
-      switch (mouse.buttons) {
-        case 1: {
-          let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
-          rotAxis = rotAxis.normalize();
-
-          if (this.fps) {
-            this.camera.rotate(rotAxis, GUI.rotationSpeed);
-          } else {
-            this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
-          }
-          break;
-        }
-        case 2: {
-          /* Right button, or secondary button */
-          this.camera.offsetDist(Math.sign(mouseDir.y) * GUI.zoomSpeed);
-          break;
-        }
-        default: {
-          break;
-        }
-      }
-    } 
     
-    // TODO
-    // You will want logic here:
-    // 1) To highlight a bone, if the mouse is hovering over a bone;
-    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
-
+    
     // mouse from screen to ndc to world
     const ndx: number = 2 * (x + 0.5)/this.width - 1;
     const ndy: number = 1 - (2 * (y + 0.5)/this.viewPortHeight);
@@ -277,7 +242,124 @@ export class GUI implements IGUI {
       
     });
     this.animation.getScene().meshes[0].setBoneHighlightIndex(intersection[1]);
+    
+    if (this.dragging && intersection[1] == Infinity && this.first && this.cont) {
+      this.first = true;
+      const dx = mouse.screenX - this.prevX;
+      const dy = mouse.screenY - this.prevY;
+      this.prevX = mouse.screenX;
+      this.prevY = mouse.screenY;
+
+      /* Left button, or primary button */
+      const mouseDir: Vec3 = this.camera.right();
+      mouseDir.scale(-dx);
+      mouseDir.add(this.camera.up().scale(dy));
+      mouseDir.normalize();
+
+      if (dx === 0 && dy === 0) {
+        return;
+      }
+
+      switch (mouse.buttons) {
+        case 1: {
+          let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
+          rotAxis = rotAxis.normalize();
+
+          if (this.fps) {
+            this.camera.rotate(rotAxis, GUI.rotationSpeed);
+          } else {
+            this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
+          }
+          break;
+        }
+        case 2: {
+          /* Right button, or secondary button */
+          this.camera.offsetDist(Math.sign(mouseDir.y) * GUI.zoomSpeed);
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+    } 
+    else if(intersection[1] != Infinity)
+    {
+      var qnew = new Quat();
+      // console.log("bone" + intersection[1]);
+      if(mouse.buttons == 1)
+      {
+        this.cont = true;
+        var j: Vec3 = this.animation.getScene().meshes[0].bones[intersection[1]].position;
+        var curend: Vec3 = this.animation.getScene().meshes[0].bones[intersection[1]].endpoint;
+        var t: number = Infinity;
+        var temp2: Vec3 = new Vec3();
+        var axis: Vec3 = new Vec3();
+        var angle: number = 0;
+        
+        console.log("first" + this.first);
+        if(this.first)
+        {
+          this.first = false;
+          
+          this.poCylin = Vec3.sum(p, v.scale(intersection[0], temp2)); // point on cylinder
+          
+          this.poCylin = Vec3.difference(this.poCylin, j); // local coords of point on cylinder
+
+          var boneDir = Vec3.difference(curend, j).normalize();
+
+          this.curDist = Vec3.dot(this.poCylin, boneDir); // how far corresponding bone is from joint
+          
+        }
+        else 
+        {
+          var disc: number = Math.pow(Vec3.dot(v, Vec3.difference(p, j)), 2) - (Vec3.squaredDistance(p, j) - Math.pow(this.curDist, 2));
+          if(disc >= 0)
+          {
+            t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
+            console.log("t " + t);
+            var newend: Vec3 = p.add(v.scale(t, temp2), temp2);
+            axis = Vec3.cross(curend.subtract(j), newend.subtract(j)).normalize();
+            angle = Math.acos(Vec3.dot(newend.normalize(), curend.normalize()));
+            
+            console.log("v " + v.xyz.toLocaleString());
+            console.log("")
+            console.log("angle " + angle);
+            console.log("prev loc " + curend.xyz.toLocaleString());
+            console.log("new location " + newend.xyz.toLocaleString());   
+            console.log("axis " + axis.xyz.toLocaleString());
+            console.log("cur dist " + this.curDist);
+
+            var nq: Quat = Quat.fromAxisAngle(axis, angle);
+            var cq: Quat = nq.multiply(this.animation.getScene().meshes[0].bones[intersection[1]].rotation);
+            this.animation.getScene().meshes[0].bones[intersection[1]].rotation = cq;
+            this.animation.getScene().meshes[0].bones[intersection[1]].endpoint = nq.multiplyVec3(curend).add(j);
+          }
+        }  
+        
+       
+      
+      }
+      else 
+      {
+        this.first = true;
+        this.cont = false;
+      }
+
+
+      
+
+      
+      //TO DO write the recursive function for rotation
+    }
+    
+    // TODO
+    // You will want logic here:
+    // 1) To highlight a bone, if the mouse is hovering over a bone;
+    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+
+    
   }
+
 
   public getModeString(): string {
     switch (this.mode) {
