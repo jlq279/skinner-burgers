@@ -135,7 +135,7 @@ export const skeletonVSText = `
 
         gl_Position = mProj * mView * mWorld * vec4(endP[index], 1.0);
         
-        //gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);
+        // gl_Position = mProj * mView * mWorld * vec4(bTrans[index] + qtrans(bRots[index], vertPosition), 1.0);
 
     }
 `;
