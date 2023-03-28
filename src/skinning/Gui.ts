@@ -251,7 +251,13 @@ export class GUI implements IGUI {
       const axis: Vec3 = this.camera.forward();
       const joint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].position;
       const endpoint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint;
-      console.log("joint " + this.viewMatrix().multiplyVec3(joint).xyz.toLocaleString() + " endpoint " + this.viewMatrix().multiplyVec3(endpoint).xyz.toLocaleString() + " mouseVec3 " + this.viewMatrix().multiplyVec3(mouseVec3).xyz.toLocaleString());
+      const jointNDC: Vec4 = Mat4.product(this.projMatrix(), this.viewMatrix()).multiplyVec4(new Vec4([joint.x, joint.y, joint.z, 1.0]));
+      jointNDC.scale(1.0/jointNDC.w);
+      const endpointNDC: Vec4 = Mat4.product(this.projMatrix(), this.viewMatrix()).multiplyVec4(new Vec4([endpoint.x, endpoint.y, endpoint.z, 1.0]));
+      endpointNDC.scale(1.0/endpointNDC.w);
+      const mouseNDC: Vec4 = Mat4.product(this.projMatrix(), this.viewMatrix()).multiplyVec4(new Vec4([mouseVec3.x, mouseVec3.y, mouseVec3.z, 1.0]));
+      mouseNDC.scale(1.0/mouseNDC.w);
+      console.log("joint " + jointNDC.scale(1.0/jointNDC.w).xyzw.toLocaleString() + " endpoint " + endpointNDC.scale(1.0/endpointNDC.w).xyzw.toLocaleString() + " mouseVec3 " + mouseNDC.scale(1.0/mouseNDC.w).xyzw.toLocaleString());
       const projection: number[] = [];
       for (var col: number = 0; col < 3; col++) {
         for (var row: number = 0; row < 3; row++) {
@@ -265,13 +271,15 @@ export class GUI implements IGUI {
       }
       const P: Mat3 = new Mat3(projection);
       console.log("projection " + P.all().toLocaleString());
-      const projJoint: Vec3 = P.multiplyVec3(Vec3.difference(joint, p));
-      const projEndpoint: Vec3 = P.multiplyVec3(Vec3.difference(endpoint, p));
-      const projMouse: Vec3 = P.multiplyVec3(Vec3.difference(mouseVec3, p));
-      const projBone: Vec3 = Vec3.difference(projEndpoint, projJoint).normalize();
-      const projMouseToJoint: Vec3 = Vec3.difference(projMouse, projJoint).normalize();
-      console.log("projJoint " + projJoint.xyz.toLocaleString() + " projEndpoint " + projEndpoint.xyz.toLocaleString());
-      console.log("projMouse " + projMouse.xyz.toLocaleString());
+      // const projJoint: Vec3 = P.multiplyVec3(Vec3.difference(joint, p));
+      // const projEndpoint: Vec3 = P.multiplyVec3(Vec3.difference(endpoint, p));
+      // const projMouse: Vec3 = P.multiplyVec3(Vec3.difference(mouseVec3, p));
+      // const projBone: Vec3 = Vec3.difference(projEndpoint, projJoint).normalize();
+      // const projMouseToJoint: Vec3 = Vec3.difference(projMouse, projJoint).normalize();
+      // console.log("projJoint " + projJoint.xyz.toLocaleString() + " projEndpoint " + projEndpoint.xyz.toLocaleString());
+      // console.log("projMouse " + projMouse.xyz.toLocaleString());
+      const projBone: Vec3 = Vec3.difference(new Vec3(endpointNDC.xyz), new Vec3(jointNDC.xyz)).normalize();
+      const projMouseToJoint: Vec3 = Vec3.difference(new Vec3(mouseNDC.xyz), new Vec3(jointNDC.xyz)).normalize();
       const v3: Vec3 = Vec3.cross(projBone, projMouseToJoint);
       
       var angle: number = Math.atan2(Vec3.dot(v3, axis), Vec3.dot(projMouseToJoint, projBone));
