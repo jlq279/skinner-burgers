@@ -1,7 +1,7 @@
 import { Camera } from "../lib/webglutils/Camera.js";
 import { CanvasAnimation } from "../lib/webglutils/CanvasAnimation.js";
 import { SkinningAnimation } from "./App.js";
-import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
+import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat, Mat3 } from "../lib/TSM.js";
 import { Bone, Mesh } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 import { FrontSide } from "../lib/threejs/src/constants.js";
@@ -236,8 +236,8 @@ export class GUI implements IGUI {
     var temp: Vec3 = new Vec3();
     
     // mouse from screen to ndc to world
-    const ndx: number = 2 * (x + 0.5)/this.width - 1;
-    const ndy: number = 1 - (2 * (y + 0.5)/this.viewPortHeight);
+    const ndx: number = 2.0 * ((x + 0.5)/this.width) - 1.0;
+    const ndy: number = 2.0 * (1 - (y + 0.5)/this.viewPortHeight) - 1.0;
     const mouseWorld: Vec4 = this.viewMatrix().inverse().multiply(this.projMatrix().inverse()).multiplyVec4(new Vec4([ndx, ndy, -1, 1]));
     mouseWorld.scale(1.0/mouseWorld.w);
 
@@ -251,14 +251,34 @@ export class GUI implements IGUI {
       const axis: Vec3 = this.camera.forward();
       const joint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].position;
       const endpoint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint;
-      const projJoint: Vec3 = Vec3.difference(joint, axis.scale(Vec3.dot(joint, axis), temp));
-      const projEndpoint: Vec3 = Vec3.difference(endpoint, axis.scale(Vec3.dot(endpoint, axis), temp));
-      const projMouse: Vec3 = Vec3.sum(mouseVec3, v.scale(Vec3.dot(Vec3.difference(projJoint, mouseVec3), axis)/Vec3.dot(v, axis), temp));
+      console.log("joint " + this.viewMatrix().multiplyVec3(joint).xyz.toLocaleString() + " endpoint " + this.viewMatrix().multiplyVec3(endpoint).xyz.toLocaleString() + " mouseVec3 " + this.viewMatrix().multiplyVec3(mouseVec3).xyz.toLocaleString());
+      const projection: number[] = [];
+      for (var col: number = 0; col < 3; col++) {
+        for (var row: number = 0; row < 3; row++) {
+          if (col == row) {
+            projection.push(1 - axis.at(col) * axis.at(row));
+          }
+          else {
+            projection.push(-axis.at(col) * axis.at(row));
+          }
+        }
+      }
+      const P: Mat3 = new Mat3(projection);
+      console.log("projection " + P.all().toLocaleString());
+      const projJoint: Vec3 = P.multiplyVec3(Vec3.difference(joint, p));
+      const projEndpoint: Vec3 = P.multiplyVec3(Vec3.difference(endpoint, p));
+      const projMouse: Vec3 = P.multiplyVec3(Vec3.difference(mouseVec3, p));
       const projBone: Vec3 = Vec3.difference(projEndpoint, projJoint).normalize();
       const projMouseToJoint: Vec3 = Vec3.difference(projMouse, projJoint).normalize();
-      var angle: number = Math.acos(Math.min(Vec3.dot(projMouseToJoint, projBone), 1));
+      console.log("projJoint " + projJoint.xyz.toLocaleString() + " projEndpoint " + projEndpoint.xyz.toLocaleString());
+      console.log("projMouse " + projMouse.xyz.toLocaleString());
       const v3: Vec3 = Vec3.cross(projBone, projMouseToJoint);
-      if (Vec3.dot(v3, axis) < 0) angle = -angle;
+      
+      var angle: number = Math.atan2(Vec3.dot(v3, axis), Vec3.dot(projMouseToJoint, projBone));
+      if (angle >= Math.PI) angle = -angle;
+      console.log("projBone " + projBone.xyz.toLocaleString() + " projMouseToJoint " + projMouseToJoint.xyz.toLocaleString());
+      console.log("v3 " + v3.xyz.toLocaleString() + " axis " + axis.xyz.toLocaleString());
+      console.log("angle " + angle + " dot " + Vec3.dot(projMouseToJoint, projBone));
       var nq: Quat = Quat.fromAxisAngle(axis, angle);
       var cq: Quat = Quat.product(nq, this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation);
       this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq;
