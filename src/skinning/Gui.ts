@@ -345,11 +345,12 @@ export class GUI implements IGUI {
       
       var angle: number = Math.atan2(Math.min(Vec3.dot(v3, axis), 1.0), Math.min(Vec3.dot(boneDir, mouseDir), 1.0));
       // if (angle >= Math.PI) angle = -angle;
-      console.log("projBone " + boneDir.xyz.toLocaleString() + " projMouse " + mouseDir.xyz.toLocaleString());
-      console.log("v3 " + v3.xyz.toLocaleString() + " axis " + axis.xyz.toLocaleString());
-      console.log("angle " + angle + " dot " + Vec3.dot(mouseDir, boneDir));
+      // console.log("projBone " + boneDir.xyz.toLocaleString() + " projMouse " + mouseDir.xyz.toLocaleString());
+      // console.log("v3 " + v3.xyz.toLocaleString() + " axis " + axis.xyz.toLocaleString());
+      // console.log("angle " + angle + " dot " + Vec3.dot(mouseDir, boneDir));
       var nq: Quat = Quat.fromAxisAngle(axis, angle);
       var cq: Quat = Quat.product(nq, this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation);
+      console.log("new quaternion " + nq.xyzw + " cquaternion " + cq.xyzw);
       this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq.normalize();
 
       // const s: Vec3 = v3.scale(1.0/v3.length(), temp);
@@ -515,7 +516,7 @@ export class GUI implements IGUI {
           var angle: number = 0.1;
           var nq: Quat = Quat.fromAxisAngle(axis, angle);
           var cq: Quat = this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation;
-          console.log("roll: " + nq.xyzw);
+          // console.log("roll: " + nq.xyzw);
           this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq.multiply(nq, cq );
           this.animation.getScene().meshes[0].update(this.highlightedBone);
         }

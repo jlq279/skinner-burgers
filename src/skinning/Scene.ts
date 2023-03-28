@@ -99,7 +99,7 @@ export class Mesh {
       return Mat4.product(bone.B, bone.T);
     }
     else {
-      return Mat4.product(this.recurseD(this.bones[bone.parent]), bone.B).multiply(bone.T);
+      return Mat4.product(Mat4.product(this.recurseD(this.bones[bone.parent]), bone.B) , bone.T);
     }
   }
   constructor(mesh: MeshLoader) {
@@ -218,7 +218,7 @@ export class Mesh {
       // parentB2 = this.bones[parentID];
       // jointLoc = parentB2.U.inverse().multiplyPt3(this.bones[i].initialPosition);
       // console.log(parentID +  " top persp " + parentB2.D.all().toLocaleString());
-      this.bones[i].position = Mat4.product(this.bones[i].D, this.bones[i].U.inverse()).multiplyPt3(jointLoc);
+      this.bones[i].position = Mat4.product(this.bones[i].D, this.bones[i].U.copy().inverse()).multiplyPt3(jointLoc);
       // this.bones[i].position = Vec3.sum(this.bones[i].initialPosition, Vec3.cross(Vec3.difference(Vec3.cross(this.bones[i].initialPosition, new Vec3(this.bones[i].rotation.xyz)), this.bones[i].initialPosition.scale(this.bones[i].rotation.w, new Vec3())), new Vec3(this.bones[i].rotation.xyz)).scale(2.0))
       this.bonePositions[6*i] = this.bones[i].position.x;
       this.bonePositions[6*i + 1] = this.bones[i].position.y;
@@ -229,12 +229,14 @@ export class Mesh {
     // endLoc = parentB2.U.inverse().multiplyPt3(endLoc);
     // this.Trans(i);
     // console.log(i + " Localvec " + endLoc.xyz.toLocaleString());
-    this.bones[i].endpoint = Mat4.product(this.bones[i].D, this.bones[i].U.inverse()).multiplyPt3(endLoc);
+    this.bones[i].endpoint = Mat4.product(this.bones[i].D, this.bones[i].U.copy().inverse()).multiplyPt3(endLoc);
+    console.log("Local coords " + this.bones[i].U.copy().inverse().multiplyPt3(endLoc).xyz.toLocaleString());
+    console.log("bone " + i + " bone.U " + this.bones[i].U.all().toLocaleString());
     // this.bones[i].endpoint = Vec3.sum(this.bones[i].initialEndpoint, Vec3.cross(Vec3.difference(Vec3.cross(this.bones[i].initialEndpoint, new Vec3(this.bones[i].rotation.xyz)), this.bones[i].initialEndpoint.scale(this.bones[i].rotation.w, new Vec3())), new Vec3(this.bones[i].rotation.xyz)).scale(2.0))
     this.bonePositions[6*i + 3] = this.bones[i].endpoint.x;
     this.bonePositions[6*i + 4] = this.bones[i].endpoint.y;
     this.bonePositions[6*i + 5] = this.bones[i].endpoint.z;
-    console.log(i + " newVec " + this.bones[i].endpoint.xyz.toLocaleString());
+    // console.log(i + " newVec " + this.bones[i].endpoint.xyz.toLocaleString());
     this.bones[i].children.forEach(child => {
       this.update(child);
     })
