@@ -149,8 +149,10 @@ export class SkinningAnimation extends CanvasAnimation {
     }
     this.sceneRenderPass.addAttribute("skinIndices", 4, this.ctx.FLOAT, false,
       4 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].geometry.skinIndex.values);
+      console.log("skins: " + this.scene.meshes[0].geometry.skinIndex.values.toLocaleString());
     this.sceneRenderPass.addAttribute("skinWeights", 4, this.ctx.FLOAT, false,
       4 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].geometry.skinWeight.values);
+      console.log("whale: " + this.scene.meshes[0].geometry.skinWeight.values.toLocaleString());
     this.sceneRenderPass.addAttribute("v0", 3, this.ctx.FLOAT, false,
       3 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].geometry.v0.values);
     this.sceneRenderPass.addAttribute("v1", 3, this.ctx.FLOAT, false,
@@ -184,6 +186,13 @@ export class SkinningAnimation extends CanvasAnimation {
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniform4fv(loc, this.scene.meshes[0].getBoneRotations());
     });
+    this.sceneRenderPass.addUniform("Ds", (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+      gl.uniformMatrix4fv(loc, false, this.scene.meshes[0].getDeez());
+    });
+    this.sceneRenderPass.addUniform("Us", (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+      gl.uniformMatrix4fv(loc, false, this.scene.meshes[0].getUeez());
+    });
+
 
     this.sceneRenderPass.setDrawData(this.ctx.TRIANGLES, this.scene.meshes[0].geometry.position.count, this.ctx.UNSIGNED_INT, 0);
     this.sceneRenderPass.setup();

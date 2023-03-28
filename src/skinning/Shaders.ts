@@ -60,18 +60,39 @@ export const sceneVSText = `
     varying vec4 lightDir;
     varying vec2 uv;
     varying vec4 normal;
+    varying float fock;
  
     uniform vec4 lightPosition;
     uniform mat4 mWorld;
     uniform mat4 mView;
     uniform mat4 mProj;
+    uniform mat4 Ds[64];
+    uniform mat4 Us[64];
 
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
     void main () {
-        vec3 trans = vertPosition;
-        vec4 worldPosition = mWorld * vec4(trans, 1.0);
+        // vec3 trans = vertPosition;
+        // vec4 worldPosition = mWorld * vec4(trans, 1.0);
+        vec4 trans = vec4(vertPosition, 1.0);
+        // vec4 worldPosition = Ds[0] * Us[0] *  v0;
+        if (skinIndices.x < 0.0) {
+            fock = 1.0;
+        }
+        else {
+            fock = 0.0;
+        }
+        int ind = int(skinIndices.x);
+        int ind2 = int(skinIndices.y);
+        int ind3 = int(skinIndices.z);
+        int ind4 = int(skinIndices.w);
+        vec4 worldPosition = skinWeights.x * Ds[ind] * Us[ind] * v0;
+        worldPosition = worldPosition + skinWeights.y * Ds[ind2]  * v1;
+        worldPosition = worldPosition + skinWeights.z * Ds[ind3]  * v2;
+        worldPosition = worldPosition + skinWeights.w * Ds[ind4]  * v3;
+
+
         gl_Position = mProj * mView * worldPosition;
         
         //  Compute light direction and transform to camera coordinates
@@ -92,8 +113,15 @@ export const sceneFSText = `
     varying vec2 uv;
     varying vec4 normal;
 
+    varying float fock;
+
     void main () {
+        if (fock == 0.0) {
         gl_FragColor = vec4((normal.x + 1.0)/2.0, (normal.y + 1.0)/2.0, (normal.z + 1.0)/2.0,1.0);
+        }
+        else {
+            gl_FragColor = vec4(1.0, 1.0, 0.0,1.0);
+        }
     }
 `;
 

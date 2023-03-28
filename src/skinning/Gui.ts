@@ -410,7 +410,7 @@ export class GUI implements IGUI {
           var angle: number = 0.1;
           var nq: Quat = Quat.fromAxisAngle(axis, angle);
           var cq: Quat = this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation;
-          console.log("roll: " + nq.xyzw);
+          //yconsole.log("roll: " + nq.xyzw);
           this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq.multiply(nq, cq );
           this.animation.getScene().meshes[0].update(this.highlightedBone);
         }
