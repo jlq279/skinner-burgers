@@ -1,4 +1,4 @@
-import { Mat4, Quat, Vec3 } from "../lib/TSM.js";
+import { Mat4, Quat, Vec3, Vec4 } from "../lib/TSM.js";
 import { AttributeLoader, MeshGeometryLoader, BoneLoader, MeshLoader } from "./AnimationFileLoader.js";
 
 export class Attribute {
@@ -81,13 +81,30 @@ export class Mesh {
   public ogvec: Vec3 = new Vec3();
 
   private boneIndices: number[];
-  private bonePositions: Float32Array;
+  public bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
   private boneHighlightIndex: number;
   private Darray: Float32Array;
   private Uarray: Float32Array;
   
 
+  private recurseU(bone: Bone): Mat4 {
+    if (bone.parent == -1) {
+      return new Mat4(bone.B.all());
+    }
+    else {
+      return Mat4.product(this.recurseU(this.bones[bone.parent]), bone.B);
+    }
+  }
+
+  private recurseD(bone: Bone): Mat4 {
+    if (bone.parent == -1) {
+      return Mat4.product(bone.B, bone.T);
+    }
+    else {
+      return Mat4.product(this.recurseD(this.bones[bone.parent]), bone.B).multiply(bone.T);
+    }
+  }
   constructor(mesh: MeshLoader) {
     this.geometry = new MeshGeometry(mesh.geometry);
     this.worldMatrix = mesh.worldMatrix.copy();
@@ -110,21 +127,22 @@ export class Mesh {
         bone.B = new Mat4([1, 0 , 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
       }
       bone.T = Mat4.identity;
+      bone.U = this.recurseU(bone);
     })
 
-    this.bones.forEach(bone => {
-      bone.U = bone.B;
-      bone.D = bone.B;
-      var parentB: Bone = bone;
-      while(parentB.parent != -1)
-      {
-        parentB = this.bones[bone.parent];
-        bone.U.multiply(parentB.B);
-        bone.D.multiply(parentB.T);
-        bone.D.multiply(parentB.B);
-      }
+    // this.bones.forEach(bone => {
+    //   bone.U = this.recurseU(bone);
+    //   // bone.D = bone.B;
+    //   // var parentB: Bone = bone;
+    //   // while(parentB.parent != -1)
+    //   // {
+    //   //   parentB = this.bones[bone.parent];
+    //   //   bone.U.multiply(parentB.B);
+    //   //   bone.D.multiply(parentB.T);
+    //   //   bone.D.multiply(parentB.B);
+    //   // }
       
-    })
+    // })
 
     this.materialName = mesh.materialName;
     this.imgSrc = null;
@@ -139,8 +157,7 @@ export class Mesh {
   }
 
   public getBonePositions(): Float32Array {
-    //console.log("calling bone positions");
-    //console.log(this.bonePositions.toLocaleString());
+    console.log(this.bonePositions.toLocaleString());
     return this.bonePositions;
   }
 
@@ -183,7 +200,6 @@ export class Mesh {
     this.bones.forEach((bone, index) => {
       let res = bone.position.xyz;
       let res2 = bone.endpoint.xyz;
-      
         for(let j = 0; j < 3; j++)  
         {
           trans[6 * index + j] = res[j];
@@ -228,25 +244,26 @@ export class Mesh {
     var parentID : number = this.bones[i].parent;
     var parentB2 : Bone = this.bones[i];
     var jointLoc : Vec3 = this.bones[i].initialPosition;
-    var Temp4 : Vec3 = new Vec3();
-    if(parentID != -1)
-    {
-      parentB2 = this.bones[parentID];
-      jointLoc = parentB2.U.inverse().multiplyPt3(jointLoc);
-      this.Trans(parentID);
-      //console.log(parentID +  " top persp " + parentB2.D.all().toLocaleString());
-      this.bones[i].position = this.bones[parentID].D.multiplyPt3(jointLoc);
+    // var Temp4 : Vec3 = new Vec3();
+    this.Trans(i);
+    // if(parentID != -1)
+    // {
+      // parentB2 = this.bones[parentID];
+      // jointLoc = parentB2.U.inverse().multiplyPt3(this.bones[i].initialPosition);
+      // console.log(parentID +  " top persp " + parentB2.D.all().toLocaleString());
+      this.bones[i].position = Mat4.product(this.bones[i].D, this.bones[i].U.inverse()).multiplyPt3(jointLoc);
+      // this.bones[i].position = Vec3.sum(this.bones[i].initialPosition, Vec3.cross(Vec3.difference(Vec3.cross(this.bones[i].initialPosition, new Vec3(this.bones[i].rotation.xyz)), this.bones[i].initialPosition.scale(this.bones[i].rotation.w, new Vec3())), new Vec3(this.bones[i].rotation.xyz)).scale(2.0))
       this.bonePositions[6*i] = this.bones[i].position.x;
       this.bonePositions[6*i + 1] = this.bones[i].position.y;
       this.bonePositions[6*i + 2] = this.bones[i].position.z;
-    }
-
+    // }
     
     var endLoc : Vec3 = this.bones[i].initialEndpoint;
-    endLoc = this.bones[i].U.inverse().multiplyPt3(endLoc);
-    this.Trans(i);
-    //console.log(i + " Localvec " + endLoc.xyz.toLocaleString());
-    this.bones[i].endpoint = this.bones[i].D.multiplyPt3(endLoc);
+    // endLoc = parentB2.U.inverse().multiplyPt3(endLoc);
+    // this.Trans(i);
+    // console.log(i + " Localvec " + endLoc.xyz.toLocaleString());
+    this.bones[i].endpoint = Mat4.product(this.bones[i].D, this.bones[i].U.inverse()).multiplyPt3(endLoc);
+    // this.bones[i].endpoint = Vec3.sum(this.bones[i].initialEndpoint, Vec3.cross(Vec3.difference(Vec3.cross(this.bones[i].initialEndpoint, new Vec3(this.bones[i].rotation.xyz)), this.bones[i].initialEndpoint.scale(this.bones[i].rotation.w, new Vec3())), new Vec3(this.bones[i].rotation.xyz)).scale(2.0))
     this.bonePositions[6*i + 3] = this.bones[i].endpoint.x;
     this.bonePositions[6*i + 4] = this.bones[i].endpoint.y;
     this.bonePositions[6*i + 5] = this.bones[i].endpoint.z;
@@ -260,18 +277,19 @@ export class Mesh {
   public Trans(id: number) {
     if(id == -1) return;
     else {
-      var temp8: Mat4 = new Mat4();
+      // var temp8: Mat4 = new Mat4();
       this.bones[id].T = this.bones[id].rotation.toMat4();
-      if(this.bones[id].parent != -1)
-      {
-        this.bones[id].D = this.bones[this.bones[id].parent].D, temp8;
-        this.bones[id].D = this.bones[id].D.multiply(this.bones[id].B, temp8);
-        this.bones[id].D = this.bones[id].D.multiply(this.bones[id].T, temp8);
-      }
-      else 
-      {
-        this.bones[id].D = this.bones[id].B.multiply(this.bones[id].T, temp8);
-      }
+      this.bones[id].D = this.recurseD(this.bones[id]);
+      // if(this.bones[id].parent != -1)
+      // {
+      //   this.bones[id].D = this.bones[this.bones[id].parent].D, temp8;
+      //   this.bones[id].D = this.bones[id].D.multiply(this.bones[id].B, temp8);
+      //   this.bones[id].D = this.bones[id].D.multiply(this.bones[id].T, temp8);
+      // }
+      // else 
+      // {
+      //   this.bones[id].D = this.bones[id].B.multiply(this.bones[id].T, temp8);
+      // }
         
     }
 
