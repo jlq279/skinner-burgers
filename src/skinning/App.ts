@@ -200,6 +200,7 @@ export class SkinningAnimation extends CanvasAnimation {
     this.skeletonRenderPass.addAttribute("boneIndex", 1, this.ctx.FLOAT, false,
       1 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBoneIndexAttribute());
 
+
     this.skeletonRenderPass.addUniform("boneHighlightIndex",
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniform1f(loc, this.getScene().meshes[0].getBoneHighlightIndex());
@@ -225,6 +226,10 @@ export class SkinningAnimation extends CanvasAnimation {
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniform4fv(loc, this.getScene().meshes[0].getBoneRotations());
     });
+    this.skeletonRenderPass.addUniform("endP", 
+    (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+      gl.uniform3fv(loc, this.getScene().meshes[0].getBoneEndpoints());
+  });
 
     this.skeletonRenderPass.setDrawData(this.ctx.LINES,
       this.scene.meshes[0].getBoneIndices().length, this.ctx.UNSIGNED_INT, 0);
@@ -291,7 +296,7 @@ export class SkinningAnimation extends CanvasAnimation {
 
     // TODO
     // If the mesh is animating, probably you want to do some updating of the skeleton state here
-
+    
     // draw the status message
     if (this.ctx2) {
       this.ctx2.clearRect(0, 0, this.ctx2.canvas.width, this.ctx2.canvas.height);

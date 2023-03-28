@@ -434,10 +434,11 @@ export class GUI implements IGUI {
         {
           var end: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].initialEndpoint;
           var start: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].initialPosition;
-          var axis: Vec3 = Vec3.difference(end, start);
+          var axis: Vec3 = Vec3.difference(end, start).normalize();
           var angle: number = 0.1;
           var nq: Quat = Quat.fromAxisAngle(axis, angle);
           var cq: Quat = this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation;
+          console.log("roll: " + nq.xyzw);
           this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq.multiply(nq, cq );
           this.animation.getScene().meshes[0].update(this.highlightedBone);
         }

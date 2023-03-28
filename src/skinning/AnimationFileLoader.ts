@@ -208,14 +208,14 @@ export class MeshLoader {
     this.bones.forEach((bone, index) => {
       this.boneIndices.push(2 * index);
       this.boneIndices.push(2 * index + 1);
-      this.boneIndexAttribute[2 * index] = index;
-      this.boneIndexAttribute[2 * index + 1] = index;
-      this.bonePositions[index * 6] = 0;
-      this.bonePositions[index * 6 + 1] = 0;
-      this.bonePositions[index * 6 + 2] = 0;
-      this.bonePositions[index * 6 + 3] = bone.initialEndpoint.x - bone.initialPosition.x;
-      this.bonePositions[index * 6 + 4] = bone.initialEndpoint.y - bone.initialPosition.y;
-      this.bonePositions[index * 6 + 5] = bone.initialEndpoint.z - bone.initialPosition.z;
+      this.boneIndexAttribute[2 * index] = 2 * index;
+      this.boneIndexAttribute[2 * index + 1] = 2 * index + 1;
+      this.bonePositions[index * 6] = bone.initialPosition.x;
+      this.bonePositions[index * 6 + 1] = bone.initialPosition.y;
+      this.bonePositions[index * 6 + 2] = bone.initialPosition.z;
+      this.bonePositions[index * 6 + 3] = bone.initialEndpoint.x;
+      this.bonePositions[index * 6 + 4] = bone.initialEndpoint.y;
+      this.bonePositions[index * 6 + 5] = bone.initialEndpoint.z;
     });
   }
 

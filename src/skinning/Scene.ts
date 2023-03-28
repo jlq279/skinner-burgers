@@ -136,6 +136,8 @@ export class Mesh {
   }
 
   public getBonePositions(): Float32Array {
+    console.log("calling bone positions");
+    console.log(this.bonePositions.toLocaleString());
     return this.bonePositions;
   }
 
@@ -173,6 +175,22 @@ export class Mesh {
     return trans;
   }
 
+  public getBoneEndpoints(): Float32Array {
+    let trans = new Float32Array(6 * this.bones.length);
+    this.bones.forEach((bone, index) => {
+      let res = bone.position.xyz;
+      let res2 = bone.endpoint.xyz;
+      
+        for(let j = 0; j < 3; j++)  
+        {
+          trans[6 * index + j] = res[j];
+          trans[6 * index + 3 + j] = res2[j];
+        }
+      
+    });
+    return trans;
+  }
+
   public update(i: number) {
     var parentID : number = this.bones[i].parent;
     var parentB2 : Bone = this.bones[i];
@@ -183,14 +201,23 @@ export class Mesh {
       parentB2 = this.bones[parentID];
       jointLoc = parentB2.U.inverse().multiplyVec3(jointLoc);
       this.Trans(parentID);
-      this.bones[i].position = this.bones[parentID].D.multiplyVec3(jointLoc); 
+      console.log(parentID +  " top persp " + parentB2.D.all().toLocaleString());
+      this.bones[i].position = this.bones[parentID].D.multiplyVec3(jointLoc);
+      this.bonePositions[6*i] = this.bones[i].position.x;
+      this.bonePositions[6*i + 1] = this.bones[i].position.y;
+      this.bonePositions[6*i + 2] = this.bones[i].position.z;
     }
 
+    
     var endLoc : Vec3 = this.bones[i].initialEndpoint;
     endLoc = this.bones[i].U.inverse().multiplyVec3(endLoc);
     this.Trans(i);
+    console.log(i + " Localvec " + endLoc.xyz.toLocaleString());
     this.bones[i].endpoint = this.bones[i].D.multiplyVec3(endLoc);
-
+    this.bonePositions[6*i + 3] = this.bones[i].endpoint.x;
+    this.bonePositions[6*i + 4] = this.bones[i].endpoint.y;
+    this.bonePositions[6*i + 5] = this.bones[i].endpoint.z;
+    console.log(i + " newVec " + this.bones[i].endpoint.xyz.toLocaleString());
     this.bones[i].children.forEach(child => {
       this.update(child);
     })
@@ -204,9 +231,9 @@ export class Mesh {
       this.bones[id].T = this.bones[id].rotation.toMat4();
       if(this.bones[id].parent != -1)
       {
-        this.bones[id].D = this.bones[id].D.multiply(this.bones[this.bones[id].parent].D, temp8);
+        this.bones[id].D = this.bones[this.bones[id].parent].D, temp8;
         this.bones[id].D = this.bones[id].D.multiply(this.bones[id].B, temp8);
-        this.bones[id].D = this.bones[id].T;
+        this.bones[id].D = this.bones[id].D.multiply(this.bones[id].T, temp8);
       }
       else 
       {

@@ -102,10 +102,13 @@ export const skeletonVSText = `
 
     attribute vec3 vertPosition;
     attribute float boneIndex;
+    attribute vec3 endPoint;
 
     uniform float boneHighlightIndex;
     
     varying float highlight;
+    varying float fuck;
+    varying vec4 dub;
 
     uniform mat4 mWorld;
     uniform mat4 mView;
@@ -113,6 +116,7 @@ export const skeletonVSText = `
 
     uniform vec3 bTrans[64];
     uniform vec4 bRots[64];
+    uniform vec3 endP[128];
 
     vec3 qtrans(vec4 q, vec3 v) {
         return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
@@ -120,13 +124,19 @@ export const skeletonVSText = `
 
     void main () {
         int index = int(boneIndex);
-        if (int(boneHighlightIndex) == index) {
+        fuck = 0.0;
+        if (int(boneHighlightIndex) == index/2) {
             highlight = 1.0;
         }
         else {
             highlight = 0.0;
         }
-        gl_Position = mProj * mView * mWorld * vec4(bTrans[index] + qtrans(bRots[index], vertPosition), 1.0);
+        
+
+        gl_Position = mProj * mView * mWorld * vec4(endP[index], 1.0);
+        
+        //gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);
+
     }
 `;
 
@@ -134,10 +144,15 @@ export const skeletonFSText = `
     precision mediump float;
 
     varying float highlight;
+    varying float fuck;
+    varying vec4 dub;
 
     void main () {
-        if (highlight == 0.0) {
+        if (fuck == 1.0) {
             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+        else if(highlight == 0.0) {
+            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
         }
         else {
             gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
