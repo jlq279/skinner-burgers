@@ -251,9 +251,9 @@ export class GUI implements IGUI {
       const axis: Vec3 = this.camera.forward();
       const joint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].position;
       const endpoint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint;
-      const projJoint: Vec3 = Vec3.difference(joint, axis.copy().scale(Vec3.dot(joint, axis)));
-      const projEndpoint: Vec3 = Vec3.difference(endpoint, axis.copy().scale(Vec3.dot(endpoint, axis)));
-      const projMouse: Vec3 = Vec3.sum(mouseVec3, v.copy().scale(Vec3.dot(Vec3.difference(projJoint, mouseVec3), axis)/Vec3.dot(v, axis)));
+      const projJoint: Vec3 = Vec3.difference(joint, axis.scale(Vec3.dot(joint, axis), temp));
+      const projEndpoint: Vec3 = Vec3.difference(endpoint, axis.scale(Vec3.dot(endpoint, axis), temp));
+      const projMouse: Vec3 = Vec3.sum(mouseVec3, v.scale(Vec3.dot(Vec3.difference(projJoint, mouseVec3), axis)/Vec3.dot(v, axis), temp));
       const projBone: Vec3 = Vec3.difference(projEndpoint, projJoint).normalize();
       const projMouseToJoint: Vec3 = Vec3.difference(projMouse, projJoint).normalize();
       var angle: number = Math.acos(Math.min(Vec3.dot(projMouseToJoint, projBone), 1));
