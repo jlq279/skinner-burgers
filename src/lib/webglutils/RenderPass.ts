@@ -75,7 +75,7 @@ export class RenderPass {
     /* Setup Attributes */
     this.attributes.forEach((attr) => {
       let attrLoc = gl.getAttribLocation(this.shaderProgram, attr.name);
-      console.log(attr.name);
+      //console.log(attr.name);
       let attrBuffer = this.attributeBuffers.get(attr.bufferName);
       if (attrBuffer) {
         attrBuffer.bufferId = gl.createBuffer() as WebGLBuffer;
@@ -114,7 +114,7 @@ export class RenderPass {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255])); // Temporary color
         let img = new Image();
         img.onload = (ev: Event) => {
-          console.log("Loaded texturemap: " + this.textureMap);
+          //console.log("Loaded texturemap: " + this.textureMap);
           gl.useProgram(this.shaderProgram);
           this.extVAO.bindVertexArrayOES(this.VAO);
           gl.bindTexture(gl.TEXTURE_2D, this.texture);

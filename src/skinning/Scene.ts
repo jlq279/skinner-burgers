@@ -84,6 +84,9 @@ export class Mesh {
   public bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
   private boneHighlightIndex: number;
+  private Darray: Float32Array;
+  private Uarray: Float32Array;
+  
 
   private recurseU(bone: Bone): Mat4 {
     if (bone.parent == -1) {
@@ -207,6 +210,36 @@ export class Mesh {
     return trans;
   }
 
+  public getDeez(): Float32Array{
+    let trans = new Float32Array(16 * this.bones.length);
+    this.bones.forEach((bone, index) =>{
+      let res = bone.D.all();
+      for(let j = 0; j < 16; j++)
+      {
+        trans[16*index + j] = res[j];
+      }
+    });
+    // console.log(trans.toLocaleString());
+    return trans;
+  }
+
+
+  public getUeez(): Float32Array{
+    let trans = new Float32Array(16 * this.bones.length);
+    this.bones.forEach((bone, index) =>{
+      let res = bone.U.inverse().all();
+      for(let j = 0; j < 16; j++)
+      {
+        trans[16*index + j] = res[j];
+      }
+    });
+    console.log(trans.toLocaleString());
+    return trans;
+  }
+
+
+  
+
   public update(i: number) {
     var parentID : number = this.bones[i].parent;
     var parentB2 : Bone = this.bones[i];
@@ -236,7 +269,7 @@ export class Mesh {
     this.bonePositions[6*i + 3] = this.bones[i].endpoint.x;
     this.bonePositions[6*i + 4] = this.bones[i].endpoint.y;
     this.bonePositions[6*i + 5] = this.bones[i].endpoint.z;
-    // console.log(i + " newVec " + this.bones[i].endpoint.xyz.toLocaleString());
+    //console.log(i + " newVec " + this.bones[i].endpoint.xyz.toLocaleString());
     this.bones[i].children.forEach(child => {
       this.update(child);
     })

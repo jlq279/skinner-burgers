@@ -113,8 +113,15 @@ export const sceneFSText = `
     varying vec2 uv;
     varying vec4 normal;
 
+    varying float fock;
+
     void main () {
+        if (fock == 0.0) {
         gl_FragColor = vec4((normal.x + 1.0)/2.0, (normal.y + 1.0)/2.0, (normal.z + 1.0)/2.0,1.0);
+        }
+        else {
+            gl_FragColor = vec4(1.0, 1.0, 0.0,1.0);
+        }
     }
 `;
 
