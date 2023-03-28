@@ -58,9 +58,6 @@ export class GUI implements IGUI {
   public draggingBone: boolean = false;
   public highlightedT: number = Infinity;
   public highlightedBone: number = Infinity;
-  // public cont: boolean = false;
-  public curDist: number = 0;
-  public poCylin: Vec3 = new Vec3();
 
   /**
    *
@@ -244,93 +241,28 @@ export class GUI implements IGUI {
     const mouseWorld: Vec4 = this.viewMatrix().inverse().multiply(this.projMatrix().inverse()).multiplyVec4(new Vec4([ndx, ndy, -1, 1]));
     mouseWorld.scale(1.0/mouseWorld.w);
 
+    const mouseVec3: Vec3 =  new Vec3(mouseWorld.xyz);
+
     // ray-cylinder intersection
     const p: Vec3 = this.camera.pos();
-    const v: Vec3 = Vec3.direction(new Vec3(mouseWorld.xyz), p);
+    const v: Vec3 = Vec3.direction(mouseVec3, p);
     
     if(this.draggingBone) { // dragging highlighted bone
       const axis: Vec3 = this.camera.forward();
       const joint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].position;
       const endpoint: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint;
-      console.log("endpoint " + endpoint.xyz.toLocaleString());
       const projJoint: Vec3 = Vec3.difference(joint, axis.copy().scale(Vec3.dot(joint, axis)));
       const projEndpoint: Vec3 = Vec3.difference(endpoint, axis.copy().scale(Vec3.dot(endpoint, axis)));
-      console.log("projJoint " + projJoint.xyz.toLocaleString() + " projEndpoint " + projEndpoint.xyz.toLocaleString() + " projBone " + Vec3.difference(projEndpoint, projJoint).xyz.toLocaleString());
-      const mouseVec3: Vec3 =  new Vec3(mouseWorld.xyz);
-      const projMouse: Vec3 = Vec3.difference(mouseVec3, axis.copy().scale(Vec3.dot(mouseVec3, axis)));
-      console.log("projMouse " + projMouse.xyz.toLocaleString());
+      const projMouse: Vec3 = Vec3.sum(mouseVec3, v.copy().scale(Vec3.dot(Vec3.difference(projJoint, mouseVec3), axis)/Vec3.dot(v, axis)));
       const projBone: Vec3 = Vec3.difference(projEndpoint, projJoint).normalize();
       const projMouseToJoint: Vec3 = Vec3.difference(projMouse, projJoint).normalize();
-      const angle: number = Math.acos(Vec3.dot(projMouseToJoint, projBone));
+      var angle: number = Math.acos(Math.min(Vec3.dot(projMouseToJoint, projBone), 1));
+      const v3: Vec3 = Vec3.cross(projBone, projMouseToJoint);
+      if (Vec3.dot(v3, axis) < 0) angle = -angle;
       var nq: Quat = Quat.fromAxisAngle(axis, angle);
       var cq: Quat = Quat.product(nq, this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation);
-      console.log("new quat " + nq.xyzw.toLocaleString());
-      console.log("cumulative quat " + cq.xyzw.toLocaleString());
       this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq;
       this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint = nq.multiplyVec3(Vec3.difference(endpoint, joint)).add(joint);
-      var nq: Quat = Quat.fromAxisAngle(axis, angle);
-      //     console.log("new quat " + nq.xyzw.toLocaleString());
-      //     console.log("cumulative quat " + cq.xyzw.toLocaleString());
-      //     this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq;
-      //     this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint = nq.multiplyVec3(curendloc).add(j);
-      // const projJoint: Vec3 = Vec3.difference(joint, Vec3.cross(Vec3.dot(axis, Vec3.difference(p, ))));
-      // const mouseVec3: Vec3 =  new Vec3(mouseWorld.xyz);
-      // const projMouse: Vec3 = Vec3.difference(mouseVec3, axis.copy().scale(Vec3.dot(mouseVec3, axis), temp));
-      // p' = p - (n ⋅ (p - o)) × n
-      // var qnew = new Qu2at();
-      // var j: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].position;
-      // var curend: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint;
-      // var t: number = Infinity;
-      // var temp: Vec3 = new Vec3();
-      // var axis: Vec3 = new Vec3();
-      // var angle: number = 0;
-      // // see where ray lands on plane, subtract joint
-      // console.log("start bone drag" + this.startBoneDrag);
-      // if(this.startBoneDrag) {
-      //   this.startBoneDrag = false;
-        
-      //   this.poCylin = Vec3.sum(p, v.scale(this.highlightedT, temp)); // point on cylinder
-        
-      //   this.poCylin = Vec3.difference(this.poCylin, j); // local coords of point on cylinder
-
-      //   var boneDir = Vec3.difference(curend, j).normalize();
-
-      //   this.curDist = Vec3.dot(this.poCylin, boneDir); // how far corresponding bone is from joint
-        
-      // }
-      // else  {
-
-      //   var disc: number = Math.pow(Vec3.dot(v, Vec3.difference(p, j)), 2) - (Vec3.squaredDistance(p, j) - Math.pow(this.curDist, 2));
-      //   if(disc >= 0) {
-      //     t = -1 * Vec3.dot(v, Vec3.difference(p , j)) + Math.sqrt(disc);
-      //     console.log("t " + t);
-
-      //     var newend: Vec3 = Vec3.sum(p, v.scale(t, temp));
-      //     var newendloc: Vec3 = Vec3.difference(newend, j);
-      //     var curendloc: Vec3 = Vec3.difference(curend, j);
-      //     axis = Vec3.cross(curendloc, newendloc);
-      //     angle = Math.acos(Math.min(Vec3.dot(newendloc.normalize(), curendloc.normalize()), 1));
-          
-      //     axis.normalize();
-
-      //     console.log("v " + v.xyz.toLocaleString());
-      //     console.log("")
-      //     console.log("angle " + angle);
-      //     console.log("prev loc " + curendloc.xyz.toLocaleString());
-      //     console.log("new loc " + newendloc.xyz.toLocaleString());   
-      //     console.log("axis " + axis.xyz.toLocaleString());
-      //     console.log("cur dist " + this.curDist);
-          
-      //     var temp5: Quat = new Quat();
-      //     var nq: Quat = Quat.fromAxisAngle(axis, angle);
-      //     var cq: Quat = nq.multiply(this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation, temp5);
-      //     console.log("new quat " + nq.xyzw.toLocaleString());
-      //     console.log("cumulative quat " + cq.xyzw.toLocaleString());
-      //     this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq;
-      //     this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint = nq.multiplyVec3(curendloc).add(j);
-      //     console.log("What the algo says: " + nq.multiplyVec3(curend).add(j).xyz.toLocaleString());
-      //   }
-      // }
     }
     else if (this.dragging) { // no highlighted bone; do normal rotations
       const dx = mouse.screenX - this.prevX;
