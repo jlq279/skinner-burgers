@@ -262,7 +262,8 @@ export class GUI implements IGUI {
       var nq: Quat = Quat.fromAxisAngle(axis, angle);
       var cq: Quat = Quat.product(nq, this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation);
       this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq;
-      this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint = nq.multiplyVec3(Vec3.difference(endpoint, joint)).add(joint);
+      // this.animation.getScene().meshes[0].bones[this.highlightedBone].endpoint = nq.multiplyVec3(Vec3.difference(endpoint, joint)).add(joint);
+      this.animation.getScene().meshes[0].update(this.highlightedBone);
     }
     else if (this.dragging) { // no highlighted bone; do normal rotations
       const dx = mouse.screenX - this.prevX;
@@ -400,7 +401,18 @@ export class GUI implements IGUI {
         break;
       }
       case "ArrowRight": {
-        this.camera.roll(GUI.rollSpeed, true);
+        if(!this.draggingBone) this.camera.roll(GUI.rollSpeed, true);
+        else 
+        {
+          var end: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].initialEndpoint;
+          var start: Vec3 = this.animation.getScene().meshes[0].bones[this.highlightedBone].initialPosition;
+          var axis: Vec3 = Vec3.difference(end, start);
+          var angle: number = 0.1;
+          var nq: Quat = Quat.fromAxisAngle(axis, angle);
+          var cq: Quat = this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation;
+          this.animation.getScene().meshes[0].bones[this.highlightedBone].rotation = cq.multiply(nq, cq );
+          this.animation.getScene().meshes[0].update(this.highlightedBone);
+        }
         break;
       }
       case "ArrowUp": {
