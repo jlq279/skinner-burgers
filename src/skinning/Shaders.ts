@@ -87,7 +87,7 @@ export const sceneVSText = `
         int ind2 = int(skinIndices.y);
         int ind3 = int(skinIndices.z);
         int ind4 = int(skinIndices.w);
-        vec4 worldPosition = skinWeights.x * Ds[ind] * Us[ind] * v0;
+        vec4 worldPosition = skinWeights.x * Ds[ind] * v0;
         worldPosition = worldPosition + skinWeights.y * Ds[ind2]  * v1;
         worldPosition = worldPosition + skinWeights.z * Ds[ind3]  * v2;
         worldPosition = worldPosition + skinWeights.w * Ds[ind4]  * v3;
@@ -180,7 +180,7 @@ export const skeletonFSText = `
             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
         }
         else if(highlight == 0.0) {
-            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
         }
         else {
             gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);

@@ -84,8 +84,6 @@ export class Mesh {
   public bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
   private boneHighlightIndex: number;
-  private Darray: Float32Array;
-  private Uarray: Float32Array;
   
 
   private recurseU(bone: Bone): Mat4 {
@@ -128,21 +126,8 @@ export class Mesh {
       }
       bone.T = Mat4.identity;
       bone.U = this.recurseU(bone);
-    })
-
-    // this.bones.forEach(bone => {
-    //   bone.U = this.recurseU(bone);
-    //   // bone.D = bone.B;
-    //   // var parentB: Bone = bone;
-    //   // while(parentB.parent != -1)
-    //   // {
-    //   //   parentB = this.bones[bone.parent];
-    //   //   bone.U.multiply(parentB.B);
-    //   //   bone.D.multiply(parentB.T);
-    //   //   bone.D.multiply(parentB.B);
-    //   // }
-      
-    // })
+      bone.D = bone.U;
+    });
 
     this.materialName = mesh.materialName;
     this.imgSrc = null;
@@ -157,7 +142,6 @@ export class Mesh {
   }
 
   public getBonePositions(): Float32Array {
-    console.log(this.bonePositions.toLocaleString());
     return this.bonePositions;
   }
 
@@ -219,7 +203,6 @@ export class Mesh {
         trans[16*index + j] = res[j];
       }
     });
-    // console.log(trans.toLocaleString());
     return trans;
   }
 
@@ -227,13 +210,12 @@ export class Mesh {
   public getUeez(): Float32Array{
     let trans = new Float32Array(16 * this.bones.length);
     this.bones.forEach((bone, index) =>{
-      let res = bone.U.inverse().all();
+      let res = bone.U.copy().inverse().all();
       for(let j = 0; j < 16; j++)
       {
         trans[16*index + j] = res[j];
       }
     });
-    console.log(trans.toLocaleString());
     return trans;
   }
 
@@ -241,35 +223,18 @@ export class Mesh {
   
 
   public update(i: number) {
-    var parentID : number = this.bones[i].parent;
-    var parentB2 : Bone = this.bones[i];
     var jointLoc : Vec3 = this.bones[i].initialPosition;
-    // var Temp4 : Vec3 = new Vec3();
     this.Trans(i);
-    // if(parentID != -1)
-    // {
-      // parentB2 = this.bones[parentID];
-      // jointLoc = parentB2.U.inverse().multiplyPt3(this.bones[i].initialPosition);
-      // console.log(parentID +  " top persp " + parentB2.D.all().toLocaleString());
-      this.bones[i].position = Mat4.product(this.bones[i].D, this.bones[i].U.copy().inverse()).multiplyPt3(jointLoc);
-      // this.bones[i].position = Vec3.sum(this.bones[i].initialPosition, Vec3.cross(Vec3.difference(Vec3.cross(this.bones[i].initialPosition, new Vec3(this.bones[i].rotation.xyz)), this.bones[i].initialPosition.scale(this.bones[i].rotation.w, new Vec3())), new Vec3(this.bones[i].rotation.xyz)).scale(2.0))
-      this.bonePositions[6*i] = this.bones[i].position.x;
-      this.bonePositions[6*i + 1] = this.bones[i].position.y;
-      this.bonePositions[6*i + 2] = this.bones[i].position.z;
-    // }
+    this.bones[i].position = Mat4.product(this.bones[i].D, this.bones[i].U.copy().inverse()).multiplyPt3(jointLoc);
+    this.bonePositions[6*i] = this.bones[i].position.x;
+    this.bonePositions[6*i + 1] = this.bones[i].position.y;
+    this.bonePositions[6*i + 2] = this.bones[i].position.z;
     
     var endLoc : Vec3 = this.bones[i].initialEndpoint;
-    // endLoc = parentB2.U.inverse().multiplyPt3(endLoc);
-    // this.Trans(i);
-    // console.log(i + " Localvec " + endLoc.xyz.toLocaleString());
     this.bones[i].endpoint = Mat4.product(this.bones[i].D, this.bones[i].U.copy().inverse()).multiplyPt3(endLoc);
-    console.log("Local coords " + this.bones[i].U.copy().inverse().multiplyPt3(endLoc).xyz.toLocaleString());
-    console.log("bone " + i + " bone.U " + this.bones[i].U.all().toLocaleString());
-    // this.bones[i].endpoint = Vec3.sum(this.bones[i].initialEndpoint, Vec3.cross(Vec3.difference(Vec3.cross(this.bones[i].initialEndpoint, new Vec3(this.bones[i].rotation.xyz)), this.bones[i].initialEndpoint.scale(this.bones[i].rotation.w, new Vec3())), new Vec3(this.bones[i].rotation.xyz)).scale(2.0))
     this.bonePositions[6*i + 3] = this.bones[i].endpoint.x;
     this.bonePositions[6*i + 4] = this.bones[i].endpoint.y;
     this.bonePositions[6*i + 5] = this.bones[i].endpoint.z;
-    //console.log(i + " newVec " + this.bones[i].endpoint.xyz.toLocaleString());
     this.bones[i].children.forEach(child => {
       this.update(child);
     })
@@ -279,20 +244,8 @@ export class Mesh {
   public Trans(id: number) {
     if(id == -1) return;
     else {
-      // var temp8: Mat4 = new Mat4();
       this.bones[id].T = this.bones[id].rotation.toMat4();
       this.bones[id].D = this.recurseD(this.bones[id]);
-      // if(this.bones[id].parent != -1)
-      // {
-      //   this.bones[id].D = this.bones[this.bones[id].parent].D, temp8;
-      //   this.bones[id].D = this.bones[id].D.multiply(this.bones[id].B, temp8);
-      //   this.bones[id].D = this.bones[id].D.multiply(this.bones[id].T, temp8);
-      // }
-      // else 
-      // {
-      //   this.bones[id].D = this.bones[id].B.multiply(this.bones[id].T, temp8);
-      // }
-        
     }
 
   }
