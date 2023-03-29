@@ -189,10 +189,6 @@ export class SkinningAnimation extends CanvasAnimation {
     this.sceneRenderPass.addUniform("Ds", (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
       gl.uniformMatrix4fv(loc, false, this.scene.meshes[0].getDeez());
     });
-    this.sceneRenderPass.addUniform("Us", (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
-      gl.uniformMatrix4fv(loc, false, this.scene.meshes[0].getUeez());
-    });
-
 
     this.sceneRenderPass.setDrawData(this.ctx.TRIANGLES, this.scene.meshes[0].geometry.position.count, this.ctx.UNSIGNED_INT, 0);
     this.sceneRenderPass.setup();
@@ -235,7 +231,7 @@ export class SkinningAnimation extends CanvasAnimation {
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniform4fv(loc, this.getScene().meshes[0].getBoneRotations());
     });
-    this.skeletonRenderPass.addUniform("endP", 
+    this.skeletonRenderPass.addUniform("bonePositions", 
     (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
       gl.uniform3fv(loc, this.getScene().meshes[0].getBoneEndpoints());
   });

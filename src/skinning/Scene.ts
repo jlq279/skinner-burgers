@@ -78,23 +78,12 @@ export class Mesh {
   public materialName: string;
   public imgSrc: String | null;
   public rotating: boolean = false;
-  public ogvec: Vec3 = new Vec3();
 
   private boneIndices: number[];
   public bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
   private boneHighlightIndex: number;
   
-
-  private recurseU(bone: Bone): Mat4 {
-    if (bone.parent == -1) {
-      return new Mat4(bone.B.all());
-    }
-    else {
-      return Mat4.product(this.recurseU(this.bones[bone.parent]), bone.B);
-    }
-  }
-
   private recurseD(bone: Bone): Mat4 {
     if (bone.parent == -1) {
       return Mat4.product(bone.B, bone.T);
@@ -110,7 +99,6 @@ export class Mesh {
     this.bones = [];
     mesh.bones.forEach(bone => {
       this.bones.push(new Bone(bone));
-      console.log( (this.bones.length - 1) +  "  " + this.bones[this.bones.length - 1].initialPosition.xyz.toLocaleString());
     });
     this.bones.forEach(bone=>{ 
       if(bone.parent == -1)
@@ -206,22 +194,6 @@ export class Mesh {
     });
     return trans;
   }
-
-
-  public getUeez(): Float32Array{
-    let trans = new Float32Array(16 * this.bones.length);
-    this.bones.forEach((bone, index) =>{
-      let res = bone.U.copy().inverse().all();
-      for(let j = 0; j < 16; j++)
-      {
-        trans[16*index + j] = res[j];
-      }
-    });
-    return trans;
-  }
-
-
-  
 
   public update(i: number) {
     var jointLoc : Vec3 = this.bones[i].initialPosition;

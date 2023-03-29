@@ -60,37 +60,30 @@ export const sceneVSText = `
     varying vec4 lightDir;
     varying vec2 uv;
     varying vec4 normal;
-    varying float fock;
  
     uniform vec4 lightPosition;
     uniform mat4 mWorld;
     uniform mat4 mView;
     uniform mat4 mProj;
     uniform mat4 Ds[64];
-    uniform mat4 Us[64];
 
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
+    vec3 qtrans(vec4 q, vec3 v) {
+        return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
+    }
+
+    vec3 transform(float index, vec3 p) {
+        int i = int(index);
+        return qtrans(jRots[i], p);
+    }
+
     void main () {
-        // vec3 trans = vertPosition;
-        // vec4 worldPosition = mWorld * vec4(trans, 1.0);
-        vec4 trans = vec4(vertPosition, 1.0);
-        // vec4 worldPosition = Ds[0] * Us[0] *  v0;
-        if (skinIndices.x < 0.0) {
-            fock = 1.0;
-        }
-        else {
-            fock = 0.0;
-        }
-        int ind = int(skinIndices.x);
-        int ind2 = int(skinIndices.y);
-        int ind3 = int(skinIndices.z);
-        int ind4 = int(skinIndices.w);
-        vec4 worldPosition = skinWeights.x * Ds[ind] * v0;
-        worldPosition = worldPosition + skinWeights.y * Ds[ind2]  * v1;
-        worldPosition = worldPosition + skinWeights.z * Ds[ind3]  * v2;
-        worldPosition = worldPosition + skinWeights.w * Ds[ind4]  * v3;
+        vec4 worldPosition = skinWeights.x * Ds[int(skinIndices.x)] * v0
+                            + skinWeights.y * Ds[int(skinIndices.y)]  * v1
+                            + skinWeights.z * Ds[int(skinIndices.z)]  * v2
+                            + skinWeights.w * Ds[int(skinIndices.w)]  * v3;
 
 
         gl_Position = mProj * mView * worldPosition;
@@ -98,8 +91,13 @@ export const sceneVSText = `
         //  Compute light direction and transform to camera coordinates
         lightDir = lightPosition - worldPosition;
 
+
         vec4 aNorm4 = vec4(aNorm, 0.0);
-        normal = normalize(mWorld * vec4(aNorm, 0.0));
+        vec3 newNorm = skinWeights.x * transform(skinIndices.x, aNorm)
+                     + skinWeights.y * transform(skinIndices.y, aNorm)
+                     + skinWeights.z * transform(skinIndices.z, aNorm) 
+                     + skinWeights.w * transform(skinIndices.w, aNorm);
+        normal = normalize(mWorld * vec4(newNorm, 0.0));
 
         uv = aUV;
     }
@@ -113,15 +111,8 @@ export const sceneFSText = `
     varying vec2 uv;
     varying vec4 normal;
 
-    varying float fock;
-
     void main () {
-        if (fock == 0.0) {
         gl_FragColor = vec4((normal.x + 1.0)/2.0, (normal.y + 1.0)/2.0, (normal.z + 1.0)/2.0,1.0);
-        }
-        else {
-            gl_FragColor = vec4(1.0, 1.0, 0.0,1.0);
-        }
     }
 `;
 
@@ -130,13 +121,10 @@ export const skeletonVSText = `
 
     attribute vec3 vertPosition;
     attribute float boneIndex;
-    attribute vec3 endPoint;
 
     uniform float boneHighlightIndex;
     
     varying float highlight;
-    varying float fuck;
-    varying vec4 dub;
 
     uniform mat4 mWorld;
     uniform mat4 mView;
@@ -144,7 +132,7 @@ export const skeletonVSText = `
 
     uniform vec3 bTrans[64];
     uniform vec4 bRots[64];
-    uniform vec3 endP[128];
+    uniform vec3 bonePositions[128];
 
     vec3 qtrans(vec4 q, vec3 v) {
         return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
@@ -152,18 +140,14 @@ export const skeletonVSText = `
 
     void main () {
         int index = int(boneIndex);
-        fuck = 0.0;
         if (int(boneHighlightIndex) == index/2) {
             highlight = 1.0;
         }
         else {
             highlight = 0.0;
         }
-        
 
-        gl_Position = mProj * mView * mWorld * vec4(endP[index], 1.0);
-        
-        // gl_Position = mProj * mView * mWorld * vec4(bTrans[index] + qtrans(bRots[index], vertPosition), 1.0);
+        gl_Position = mProj * mView * mWorld * vec4(bonePositions[index], 1.0);
 
     }
 `;
@@ -172,14 +156,9 @@ export const skeletonFSText = `
     precision mediump float;
 
     varying float highlight;
-    varying float fuck;
-    varying vec4 dub;
 
     void main () {
-        if (fuck == 1.0) {
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        }
-        else if(highlight == 0.0) {
+        if(highlight == 0.0) {
             gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
         }
         else {
