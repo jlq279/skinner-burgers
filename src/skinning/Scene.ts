@@ -110,6 +110,7 @@ export class Mesh {
     this.bones = [];
     mesh.bones.forEach(bone => {
       this.bones.push(new Bone(bone));
+      console.log( (this.bones.length - 1) +  "  " + this.bones[this.bones.length - 1].initialPosition.xyz.toLocaleString());
     });
     this.bones.forEach(bone=>{ 
       if(bone.parent == -1)
@@ -125,7 +126,7 @@ export class Mesh {
         bone.B = new Mat4([1, 0 , 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]);
       }
       bone.T = Mat4.identity;
-      bone.U = this.recurseU(bone);
+      bone.U = new Mat4([1,0,0,0,0,1,0,0,0,0,1,0, bone.initialPosition.x, bone.initialPosition.y, bone.initialPosition.z, 1]);
       bone.D = bone.U;
     });
 

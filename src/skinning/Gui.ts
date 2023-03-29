@@ -157,6 +157,18 @@ export class GUI implements IGUI {
     if (this.highlightedBone != Infinity) {
       this.startBoneDrag = true;
       this.draggingBone = true;
+      console.log(" bone: " + this.highlightedBone);
+      console.log(" position: " + this.animation.getScene().meshes[0].bones[this.highlightedBone].position.xyz.toLocaleString()); 
+      console.log(" D " + this.animation.getScene().meshes[0].bones[this.highlightedBone].D.all().toLocaleString());
+      var parentB = this.animation.getScene().meshes[0].bones[this.highlightedBone].parent;
+      while(parentB != -1)
+      {
+        console.log("parent: " + parentB);
+        parentB = this.animation.getScene().meshes[0].bones[parentB].parent;
+        console.log(" position: " + this.animation.getScene().meshes[0].bones[parentB].position.xyz.toLocaleString());
+        console.log("D: " + this.animation.getScene().meshes[0].bones[parentB].D.all().toLocaleString());
+      }
+
     }
     this.prevX = mouse.screenX;
     this.prevY = mouse.screenY;
